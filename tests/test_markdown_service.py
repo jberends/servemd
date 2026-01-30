@@ -148,7 +148,7 @@ async def test_render_markdown_with_special_characters(tmp_path):
     """Test rendering with special characters"""
     from docs_server.markdown_service import render_markdown_to_html
 
-    content = "# Test & Special <Characters>\n\nHTML entities: & < > \""
+    content = '# Test & Special <Characters>\n\nHTML entities: & < > "'
     file_path = tmp_path / "test.md"
 
     result = await render_markdown_to_html(content, file_path)

@@ -14,7 +14,7 @@ def test_create_html_template_basic():
     result = create_html_template(content)
 
     assert "<!DOCTYPE html>" in result
-    assert "<html lang=\"nl\">" in result
+    assert '<html lang="nl">' in result
     assert "<h1>Test Content</h1>" in result
     assert "Documentation" in result
 
@@ -190,7 +190,11 @@ def test_create_html_template_external_links():
     from docs_server.templates import create_html_template
 
     content = "<p>Content</p>"
-    topbar_sections = {"left": [{"type": "link", "title": "GitHub", "link": "https://github.com"}], "middle": [], "right": []}
+    topbar_sections = {
+        "left": [{"type": "link", "title": "GitHub", "link": "https://github.com"}],
+        "middle": [],
+        "right": [],
+    }
 
     result = create_html_template(content, topbar_sections=topbar_sections)
 
