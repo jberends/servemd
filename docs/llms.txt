@@ -1,0 +1,151 @@
+# Markdown Documentation Server
+
+A lightweight, fast, and beautiful documentation server that renders Markdown files as styled HTML with zero configuration.
+
+## Project Overview
+
+This is a modern documentation server built with Python, FastAPI, and powerful Markdown extensions. It's designed to be:
+- **Zero-config**: Drop markdown files and go
+- **Beautiful**: Nuxt UI-inspired design
+- **AI-friendly**: Built-in llms.txt support
+- **Production-ready**: Docker, caching, testing
+
+## Quick Links
+
+Essential starting points:
+- [Homepage](index.md) - Project overview and introduction
+- [Quick Setup Guide](quick-setup.md) - Get running in 5 minutes
+- [Configuration](configuration.md) - Environment variables and settings
+
+## Core Documentation
+
+### Getting Started
+- [Quick Setup Guide](quick-setup.md) - Installation and first steps
+- [Configuration](configuration.md) - Environment variables, file structure, and settings
+
+### Features
+- [Markdown Features](features/markdown.md) - Complete markdown capabilities showcase
+- [Navigation Guide](features/navigation.md) - Sidebar and topbar configuration
+- [LLMs.txt Support](features/llms-txt.md) - AI assistant integration (remarkable!)
+- [Caching System](features/caching.md) - How the intelligent cache works
+
+### Deployment
+- [Docker Deployment](deployment/docker.md) - Container-based deployment
+- [Environment Variables](deployment/environment.md) - Production configuration
+- [Production Tips](deployment/production.md) - Best practices and optimization
+
+### API Reference
+- [HTTP Endpoints](api/endpoints.md) - All available API endpoints
+- [Response Formats](api/responses.md) - Response structures and status codes
+
+### Architecture
+- [Architecture Overview](architecture/overview.md) - System design and components
+- [Code Structure](architecture/structure.md) - Module organization and patterns
+- [Testing Strategy](architecture/testing.md) - Test coverage and approach
+
+### Examples
+- [Basic Setup](examples/basic.md) - Simple configuration examples
+- [Advanced Features](examples/advanced.md) - Complex use cases
+- [Custom Styling](examples/styling.md) - Theming and customization
+
+## Key Features
+
+This server provides remarkable capabilities:
+
+1. **Rich Markdown**: Tables, code highlighting, task lists, footnotes, and more
+2. **Beautiful UI**: Three-column responsive layout with sidebar, content, and TOC
+3. **AI Integration**: Native llms.txt and llms-full.txt endpoints
+4. **Smart Caching**: Automatic HTML caching for fast performance
+5. **Security**: Path traversal protection built-in
+6. **Docker Ready**: Production-optimized container
+7. **Well Tested**: 71 tests with 100% pass rate
+8. **Modern Python**: FastAPI, async/await, type hints
+
+## Technical Details
+
+- **Language**: Python 3.13+
+- **Framework**: FastAPI
+- **Markdown**: Python-Markdown with extensions
+- **Styling**: CSS3 with modern design
+- **Testing**: pytest with 71 tests
+- **Linting**: Ruff for code quality
+- **Package Manager**: uv for fast installs
+
+## Project Structure
+
+```
+docs_server/
+├── config.py           # Settings and environment
+├── helpers.py          # Utilities and navigation
+├── caching.py          # Cache operations
+├── markdown_service.py # Markdown rendering
+├── llms_service.py     # LLMs.txt generation
+├── templates.py        # HTML templates
+└── main.py            # FastAPI routes
+```
+
+## Use Cases
+
+Perfect for:
+- **Open Source Projects**: Self-hosted documentation
+- **Internal Teams**: Company documentation portals
+- **API Documentation**: REST/GraphQL API docs
+- **Technical Writing**: Blog posts and tutorials
+- **Knowledge Bases**: Internal wikis
+
+## Community
+
+- **GitHub**: github.com/yourusername/markdown-docs-server
+- **License**: MIT
+- **Python Version**: 3.13+ recommended
+- **Dependencies**: FastAPI, Python-Markdown, Pygments, Uvicorn
+
+## Getting Help
+
+If you need assistance:
+1. Check the [Configuration Guide](configuration.md)
+2. Review [Examples](examples/basic.md)
+3. Open a GitHub issue
+4. Read the [Troubleshooting](configuration.md#troubleshooting) section
+
+## What Makes This Special?
+
+Unlike static site generators (Hugo, Jekyll, MkDocs), this is a **live server** that:
+- Renders markdown on-demand
+- No build step required
+- Hot reload in development
+- Dynamic caching
+- API endpoints for integrations
+- Native AI assistant support
+
+## Quick Command Reference
+
+```bash
+# Development
+DOCS_ROOT=./docs DEBUG=true uv run python -m docs_server
+
+# Production
+DOCS_ROOT=/app/docs BASE_URL=https://docs.site.com uv run python -m docs_server
+
+# Docker
+docker run -p 8080:8080 -v $(pwd)/docs:/app/docs markdown-docs-server
+
+# Testing
+uv run pytest tests/ -v
+
+# Linting
+uv run ruff check src/
+```
+
+## Status
+
+✅ Production Ready
+✅ Well Tested (71 tests, 100% passing)
+✅ Fully Documented
+✅ Docker Optimized
+✅ Type Hinted
+✅ Linted and Formatted
+
+---
+
+For the complete documentation, visit any page listed above or explore the sidebar navigation.

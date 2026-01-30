@@ -1,0 +1,134 @@
+name: Dependency Checks
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+  schedule:
+    # Run weekly on Monday at 06:00 UTC
+    - cron: '0 6 * * 1'
+  workflow_dispatch:
+
+jobs:
+  dependency-review:
+    name: Dependency Review
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Dependency Review
+      uses: actions/dependency-review-action@v4
+      with:
+        fail-on-severity: moderate
+        allow-licenses: MIT, Apache-2.0, BSD-2-Clause, BSD-3-Clause, ISC, Python-2.0
+
+  outdated-dependencies:
+    name: Check for Outdated Dependencies
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Install uv
+      uses: astral-sh/setup-uv@v5
+      with:
+        version: "latest"
+    
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: "3.11"
+    
+    - name: Check for outdated dependencies
+      run: |
+        uv pip list --outdated || true
+        echo "---"
+        echo "Current lock file status:"
+        uv lock --check || true
+    
+    - name: Generate dependency tree
+      run: |
+        uv pip install pipdeptree
+        uv run pipdeptree
+      continue-on-error: true
+
+  license-check:
+    name: License Compliance Check
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Install uv
+      uses: astral-sh/setup-uv@v5
+      with:
+        version: "latest"
+    
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: "3.11"
+    
+    - name: Install dependencies
+      run: |
+        uv sync --all-extras --dev
+    
+    - name: Install pip-licenses
+      run: |
+        pip install pip-licenses
+    
+    - name: Check licenses
+      run: |
+        pip-licenses --format=markdown --output-file=licenses.md
+        cat licenses.md
+    
+    - name: Upload license report
+      uses: actions/upload-artifact@v4
+      with:
+        name: license-report
+        path: licenses.md
+
+  update-dependencies:
+    name: Check for Available Updates
+    runs-on: ubuntu-latest
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Install uv
+      uses: astral-sh/setup-uv@v5
+      with:
+        version: "latest"
+    
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: "3.11"
+    
+    - name: Update lock file
+      run: |
+        uv lock --upgrade
+    
+    - name: Create Pull Request
+      uses: peter-evans/create-pull-request@v6
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+        commit-message: "chore: update dependencies"
+        title: "chore: Update dependencies"
+        body: |
+          Automated dependency update.
+          
+          This PR updates the dependency lock file with the latest compatible versions.
+          
+          Please review the changes and run tests before merging.
+        branch: automated-dependency-update
+        delete-branch: true
+        labels: dependencies, automated

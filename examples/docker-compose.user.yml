@@ -1,0 +1,67 @@
+# Docker Compose example for ServeM
+# 
+# Usage:
+#   docker-compose -f docker-compose.user.yml up
+
+version: '3.8'
+
+services:
+  # Option 1: Use base image with volume mount (for development)
+  docs-dev:
+    image: ghcr.io/yourusername/servemd:latest
+    container_name: servemd-dev
+    ports:
+      - "8080:8080"
+    volumes:
+      # Mount your local docs directory
+      - ./docs:/app/docs:ro
+      # Optional: Persistent cache
+      - docs-cache:/app/cache
+    environment:
+      - DEBUG=true
+      - BASE_URL=http://localhost:8080
+    restart: unless-stopped
+    profiles:
+      - dev
+
+  # Option 2: Use custom image (for production)
+  docs-prod:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: my-company/docs:latest
+    container_name: servemd-prod
+    ports:
+      - "80:8080"
+    environment:
+      - DEBUG=false
+      - BASE_URL=https://docs.mycompany.com
+    restart: always
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    profiles:
+      - prod
+
+volumes:
+  docs-cache:
+
+# Usage examples:
+# 
+# Development mode (with volume mount):
+#   docker-compose --profile dev up
+# 
+# Production mode (with built image):
+#   docker-compose --profile prod up -d
+# 
+# Build and run production:
+#   docker-compose --profile prod up -d --build
+# 
+# View logs:
+#   docker-compose logs -f docs-prod
+# 
+# Stop:
+#   docker-compose down

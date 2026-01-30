@@ -1,0 +1,38 @@
+# ServeM User Dockerfile Template
+# 
+# This Dockerfile bundles your documentation into a standalone container.
+# 
+# Usage:
+#   1. Copy this file to your docs directory as "Dockerfile"
+#   2. Run: docker build -t my-docs:latest .
+#   3. Run: docker run -p 8080:8080 my-docs:latest
+#   4. Visit: http://localhost:8080
+
+# Use the official servemd image as base
+# Note: Replace with actual image once published to registry
+FROM ghcr.io/yourusername/servemd:latest
+
+# Copy your documentation into the container
+# This copies everything in the current directory to /app/docs/
+COPY . /app/docs/
+
+# Optional: Set your production URL for llms.txt absolute links
+ENV BASE_URL=https://docs.yourcompany.com
+
+# Optional: Disable debug mode in production
+ENV DEBUG=false
+
+# The base image already configures:
+# - DOCS_ROOT=/app/docs
+# - PORT=8080
+# - All Python dependencies
+# - CMD to start the server
+
+# Optional: Add custom assets or generated content
+# RUN some-preprocessing-script.sh
+
+# That's it! Your documentation is now bundled in this image.
+# 
+# Build:  docker build -t my-docs:latest .
+# Run:    docker run -p 8080:8080 my-docs:latest
+# Push:   docker push ghcr.io/mycompany/docs:latest

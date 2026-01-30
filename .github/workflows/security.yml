@@ -1,0 +1,140 @@
+name: Security Checks
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+  schedule:
+    # Run weekly on Monday at 00:00 UTC
+    - cron: '0 0 * * 1'
+
+jobs:
+  bandit:
+    name: Bandit Security Scan
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: "3.11"
+    
+    - name: Install Bandit
+      run: |
+        pip install bandit[toml]
+    
+    - name: Run Bandit security scan
+      run: |
+        bandit -r src/ -f json -o bandit-report.json || true
+        bandit -r src/ -f screen
+      continue-on-error: true
+    
+    - name: Upload Bandit results
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: bandit-results
+        path: bandit-report.json
+
+  pip-audit:
+    name: Pip Audit (Dependency Vulnerabilities)
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Install uv
+      uses: astral-sh/setup-uv@v5
+      with:
+        version: "latest"
+    
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: "3.11"
+    
+    - name: Install dependencies
+      run: |
+        uv sync --all-extras --dev
+    
+    - name: Install pip-audit
+      run: |
+        pip install pip-audit
+    
+    - name: Run pip-audit
+      run: |
+        pip-audit --format json --output pip-audit-report.json || true
+        pip-audit
+      continue-on-error: true
+    
+    - name: Upload pip-audit results
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: pip-audit-results
+        path: pip-audit-report.json
+
+  safety:
+    name: Safety Check
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Install uv
+      uses: astral-sh/setup-uv@v5
+      with:
+        version: "latest"
+    
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: "3.11"
+    
+    - name: Install dependencies
+      run: |
+        uv sync --all-extras --dev
+    
+    - name: Install Safety
+      run: |
+        pip install safety
+    
+    - name: Run Safety check
+      run: |
+        safety check --json --output safety-report.json || true
+        safety check
+      continue-on-error: true
+    
+    - name: Upload Safety results
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: safety-results
+        path: safety-report.json
+
+  codeql:
+    name: CodeQL Analysis
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      contents: read
+      security-events: write
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Initialize CodeQL
+      uses: github/codeql-action/init@v3
+      with:
+        languages: python
+        queries: security-and-quality
+    
+    - name: Perform CodeQL Analysis
+      uses: github/codeql-action/analyze@v3
