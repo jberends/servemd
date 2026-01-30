@@ -6,29 +6,30 @@ This doesn't require the full server to be running.
 
 import re
 
+
 def transform_relative_to_absolute(markdown_content: str, base_url: str) -> str:
     """
     Transform relative .md links to absolute URLs.
-    
+
     Examples:
         [Title](file.md) -> [Title](https://docs.example.com/file.md)
         [Title](file.md#section) -> [Title](https://docs.example.com/file.md#section)
     """
     # Pattern matches: [text](path.md) or [text](path.md#anchor)
-    pattern = r'\[([^\]]+)\]\(([^)]+\.md(?:#[^)]*)?)\)'
-    
+    pattern = r"\[([^\]]+)\]\(([^)]+\.md(?:#[^)]*)?)\)"
+
     def replace_link(match):
         title = match.group(1)
         rel_path = match.group(2)
-        
+
         # Skip if already absolute URL
-        if rel_path.startswith('http://') or rel_path.startswith('https://'):
+        if rel_path.startswith("http://") or rel_path.startswith("https://"):
             return match.group(0)
-        
+
         # Create absolute URL
         abs_url = f"{base_url.rstrip('/')}/{rel_path.lstrip('/')}"
         return f"[{title}]({abs_url})"
-    
+
     return re.sub(pattern, replace_link, markdown_content)
 
 
