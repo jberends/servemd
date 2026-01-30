@@ -1,0 +1,305 @@
+# ServeM Documentation Server - Cursor Rules
+
+## Project Overview
+
+ServeM is a lightweight, fast, and beautiful documentation server that renders Markdown files as styled HTML with zero configuration. Built with Python 3.13+, FastAPI, and modern tooling.
+
+**Tech Stack:**
+- Python 3.13+ with type hints
+- FastAPI for web framework
+- uv for dependency management
+- pytest for testing
+- Ruff for linting and formatting
+- Markdown with pymdown-extensions
+
+## Code Style & Standards
+
+### Python Style
+- Follow PEP 8 with line length of 120 characters
+- Use type hints everywhere (functions, methods, variables)
+- Use f-strings for string formatting
+- Prefer pathlib.Path over os.path
+- Use async/await for I/O operations
+- Follow Python 3.13+ modern syntax
+
+### Naming Conventions
+- snake_case for functions, methods, variables
+- PascalCase for classes
+- UPPER_CASE for constants
+- Private methods/attributes start with underscore `_method`
+
+### Documentation
+- Use docstrings for all public functions, classes, and modules
+- Keep docstrings concise and clear
+- Document parameters, return types, and exceptions
+- Update README.md and docs/ when adding features
+
+## Development Workflow
+
+### Dependency Management
+- Use `uv` for all dependency operations
+- Add dependencies to `pyproject.toml`
+- Run `uv sync` after changing dependencies
+- Use `uv run` to execute commands in the project environment
+
+### Testing
+- Write tests for all new features
+- Maintain 100% test passing rate
+- Use pytest with asyncio support
+- Test files go in `tests/` directory
+- Name test files as `test_<module>.py`
+- Use descriptive test names: `test_<feature>_<scenario>_<expected_outcome>`
+
+**Running Tests:**
+```bash
+# All tests
+uv run pytest tests/ -v
+
+# Specific file
+uv run pytest tests/test_markdown_service.py -v
+
+# Specific test
+uv run pytest tests/test_markdown_service.py::test_render_code_blocks -v
+
+# Stop on first failure
+uv run pytest tests/ -v -x
+
+# Last failed tests only
+uv run pytest tests/ -v --lf
+
+# With coverage
+uv run pytest tests/ -v --cov=src/docs_server
+```
+
+### Linting & Formatting
+- Use Ruff for both linting and formatting
+- Run before committing changes
+- Fix all linter errors
+
+**Commands:**
+```bash
+# Check linting
+uv run ruff check src/ tests/
+
+# Fix auto-fixable issues
+uv run ruff check src/ tests/ --fix
+
+# Format code
+uv run ruff format src/ tests/
+
+# Check formatting without changes
+uv run ruff format src/ tests/ --check
+```
+
+### Running the Server
+```bash
+# Development mode (auto-reload)
+DEBUG=true uv run python -m docs_server
+
+# Production mode
+uv run python -m docs_server
+
+# With custom docs directory
+DOCS_ROOT=./my-docs uv run python -m docs_server
+
+# Custom port
+PORT=3000 uv run python -m docs_server
+```
+
+## Project Structure
+
+```
+servemd/
+├── src/docs_server/        # Main application code
+│   ├── main.py            # FastAPI app and routes
+│   ├── config.py          # Settings and environment
+│   ├── markdown_service.py # Markdown rendering
+│   ├── llms_service.py    # LLMs.txt generation
+│   ├── caching.py         # Cache operations
+│   ├── helpers.py         # Utility functions
+│   └── templates.py       # HTML templates
+├── tests/                 # Test suite
+├── docs/                  # Self-documenting docs
+├── examples/              # User examples
+├── pyproject.toml         # Project config
+└── Dockerfile            # Container build
+```
+
+## Configuration
+
+### Environment Variables
+- `DOCS_ROOT` - Path to documentation directory (default: `./docs`)
+- `CACHE_ROOT` - Path to cache directory (default: `./__cache__`)
+- `PORT` - Server port (default: `8080`)
+- `DEBUG` - Enable debug mode/auto-reload (default: `false`)
+- `BASE_URL` - Base URL for absolute links in llms.txt (default: auto-detected)
+
+### Required Files in DOCS_ROOT
+- `index.md` - Homepage (required)
+- `sidebar.md` - Left sidebar navigation (required)
+- `topbar.md` - Top bar with title and links (required)
+- `llms.txt` - AI assistant index (optional, auto-generated if missing)
+
+## Common Tasks
+
+### Adding a New Feature
+1. Write the feature code with type hints
+2. Add tests in `tests/`
+3. Update documentation in `docs/`
+4. Run tests: `uv run pytest tests/ -v`
+5. Check linting: `uv run ruff check src/ tests/`
+6. Format code: `uv run ruff format src/ tests/`
+
+### Fixing Bugs
+1. Write a failing test that reproduces the bug
+2. Fix the bug
+3. Ensure test passes
+4. Check for regressions: `uv run pytest tests/ -v`
+
+### Adding Dependencies
+1. Add to `pyproject.toml` under `dependencies` or `dependency-groups.dev`
+2. Run `uv sync`
+3. Update documentation if user-facing
+
+### Updating Documentation
+1. Edit files in `docs/` directory
+2. Test locally: `DEBUG=true uv run python -m docs_server`
+3. Visit http://localhost:8080 to preview
+4. Check markdown rendering is correct
+
+## FastAPI Patterns
+
+### Route Handlers
+- Use async def for route handlers
+- Return appropriate response types (HTMLResponse, PlainTextResponse, FileResponse)
+- Use HTTPException for errors with proper status codes
+- Add proper response_model for typed responses
+
+### Dependency Injection
+- Use FastAPI's dependency injection system
+- Keep dependencies in config.py or separate modules
+- Use Depends() for injecting dependencies
+
+### Error Handling
+- Use HTTPException for client errors (4xx)
+- Log errors with appropriate level (logger.error, logger.warning)
+- Provide clear error messages to users
+- Return proper status codes
+
+## Markdown Service
+
+### Rendering
+- Use markdown.Markdown with configured extensions
+- Cache rendered HTML for performance
+- Extract TOC from rendered content
+- Support code highlighting with Pygments
+
+### Extensions
+- Enable tables, code blocks, TOC, task lists
+- Use pymdownx.superfences for advanced code blocks
+- Support mermaid diagrams
+- Keep extension list in config.py
+
+## Caching Strategy
+
+- Cache HTML renders keyed by file path + mtime
+- Cache llms.txt and llms-full.txt outputs
+- Clear cache on startup
+- Use async file operations
+- Store cache in CACHE_ROOT directory
+
+## Security Considerations
+
+- Validate all file paths to prevent path traversal
+- Use Path.resolve() and check against DOCS_ROOT
+- Sanitize user input in route parameters
+- No execution of user-provided code
+- Docker container runs as non-root (if implemented)
+
+## Docker Guidelines
+
+### For Contributors
+- Base image: python:3.13-trixie
+- Use multi-stage builds where appropriate
+- Optimize layer caching
+- Include health check
+- Expose port 8080
+
+### For End Users
+- Provide user Dockerfile template in examples/
+- Support volume mounts for development
+- Document environment variables
+- Include docker-compose examples
+
+## Git Workflow
+
+### Commits
+- Write clear, descriptive commit messages
+- Use conventional commits format: `feat:`, `fix:`, `docs:`, `refactor:`, etc.
+- Keep commits focused and atomic
+
+### Branches
+- main - production-ready code
+- Feature branches for new features
+- Bug fix branches for fixes
+
+## AI Assistant Guidelines
+
+### When Editing Code
+1. Always read files before editing
+2. Maintain existing code style and patterns
+3. Add/update tests for changes
+4. Run linters and tests after changes
+5. Update documentation if needed
+
+### When Fixing Bugs
+1. Follow the workflow in `.cursor/commands/fix.md`
+2. Reproduce the issue first
+3. Write a failing test
+4. Fix the bug
+5. Verify all tests pass
+
+### When Adding Features
+1. Discuss approach if significant changes
+2. Follow existing patterns in the codebase
+3. Add comprehensive tests
+4. Update user documentation
+5. Consider backward compatibility
+
+### When Uncertain
+1. Ask clarifying questions
+2. Don't make assumptions about requirements
+3. Propose multiple solutions if appropriate
+4. Reference existing code patterns
+
+## Resources
+
+- **Documentation:** http://localhost:8080 (when server is running)
+- **Tests:** 71 tests in `tests/` directory
+- **Examples:** Ready-to-use examples in `examples/` directory
+- **Guides:** End-user guides in `docs/deployment/`
+
+## Quick Reference
+
+```bash
+# Setup
+pip install uv
+uv sync
+
+# Development
+DEBUG=true uv run python -m docs_server
+
+# Testing
+uv run pytest tests/ -v
+
+# Linting
+uv run ruff check src/ tests/ --fix
+uv run ruff format src/ tests/
+
+# Docker
+docker build -t servemd .
+docker run -p 8080:8080 servemd
+
+# Help
+uv run python -m docs_server --help
+```
