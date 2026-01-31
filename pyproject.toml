@@ -1,9 +1,39 @@
 [project]
 name = "servemd"
-version = "1.0.0"
-description = "FastAPI documentation server with Nuxt UI-inspired design"
+dynamic = ["version"]
+description = "Beautiful markdown documentation server for humans and AI with native llms.txt support"
 readme = "README.md"
 requires-python = ">=3.11"
+license = "Apache-2.0"
+authors = [
+    { name = "Jochem Berends", email = "jochem@gmail.nl" }
+]
+keywords = [
+    "documentation",
+    "markdown",
+    "server",
+    "fastapi",
+    "llms",
+    "ai",
+    "mcp",
+    "docs",
+]
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: Apache Software License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
+    "Framework :: FastAPI",
+    "Topic :: Documentation",
+    "Topic :: Internet :: WWW/HTTP :: HTTP Servers",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "Topic :: Software Development :: Documentation",
+    "Topic :: Text Processing :: Markup :: Markdown",
+]
 dependencies = [
     "fastapi>=0.128.0",
     "uvicorn[standard]>=0.40.0",
@@ -16,7 +46,14 @@ dependencies = [
     "slowapi>=0.1.9",
 ]
 
+[project.urls]
+Homepage = "https://github.com/jberends/servemd"
+Documentation = "https://github.com/jberends/servemd/blob/main/docs/index.md"
+Repository = "https://github.com/jberends/servemd"
+Issues = "https://github.com/jberends/servemd/issues"
+
 [project.scripts]
+servemd = "docs_server.main:main"
 docs-server = "docs_server.main:main"
 servemd-mcp = "docs_server.mcp.cli:cli_main"
 
@@ -24,8 +61,22 @@ servemd-mcp = "docs_server.mcp.cli:cli_main"
 requires = ["hatchling"]
 build-backend = "hatchling.build"
 
+[tool.hatch.version]
+path = "src/docs_server/__init__.py"
+
 [tool.hatch.build.targets.wheel]
 packages = ["src/docs_server"]
+
+[tool.hatch.build.targets.sdist]
+include = [
+    "/src",
+    "/tests",
+    "/docs",
+    "/examples",
+    "/LICENSE",
+    "/README.md",
+    "/pyproject.toml",
+]
 
 [dependency-groups]
 dev = [

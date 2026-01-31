@@ -5,4 +5,4 @@ A lightweight FastAPI-based documentation server for serving markdown files as H
 Inspired by Nuxt UI design system and documentation patterns.
 """
 
-__version__ = "1.0.0"
+__version__ = "0.1.0"
