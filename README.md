@@ -8,7 +8,8 @@ Beautiful markdown documentation with native llms.txt support. Zero configuratio
 [![Docker Hub](https://img.shields.io/docker/v/jberends/servemd?label=docker)](https://hub.docker.com/r/jberends/servemd)
 [![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.128+-green.svg)](https://fastapi.tiangolo.com/)
-[![Tests](https://img.shields.io/badge/tests-71%20passing-brightgreen.svg)](tests/)
+[![MCP](https://img.shields.io/badge/MCP-enabled-purple.svg)](docs/features/mcp.md)
+[![Tests](https://img.shields.io/badge/tests-208%20passing-brightgreen.svg)](tests/)
 [![License: Apache 2.0](https://img.shields.io/badge/License-Apache_2.0-yellow.svg)](LICENSE)
 
 ---
@@ -33,10 +34,11 @@ Markdown → Beautiful HTML    → Humans
 
 - 🎨 **Beautiful Design** — Nuxt UI-inspired three-column layout (sidebar, content, TOC)
 - 🤖 **AI-Native** — Built-in llms.txt and llms-full.txt for Claude, ChatGPT, Cursor, etc.
+- 🔌 **MCP Support** — Model Context Protocol endpoint for interactive AI queries (250x less context)
 - ✨ **Zero Configuration** — Drop `.md` files and go
 - ⚡ **Fast** — Smart disk caching, <5ms cached responses
 - 🐳 **Docker Ready** — Production-optimized container
-- 🧪 **Well Tested** — 71 tests, 100% passing
+- 🧪 **Well Tested** — 208 tests, 100% passing
 - 📱 **Responsive** — Mobile, tablet, and desktop support
 
 ---
@@ -93,16 +95,19 @@ uv run python -m docs_server
 
 ---
 
-## 🤖 AI-Native: llms.txt Support
+## 🤖 AI-Native: llms.txt & MCP Support
 
 servemd automatically serves your docs in AI-friendly formats:
 
-| Endpoint | Purpose | Audience |
-|----------|---------|----------|
-| `/{page}.html` | Rendered HTML with navigation | Humans |
-| `/{page}.md` | Raw markdown | AI/LLMs |
-| `/llms.txt` | Documentation index | AI assistants |
-| `/llms-full.txt` | Complete context (all pages) | AI deep context |
+| Endpoint | Purpose | Audience | Context Size |
+|----------|---------|----------|--------------|
+| `/{page}.html` | Rendered HTML with navigation | Humans | N/A |
+| `/{page}.md` | Raw markdown | AI/LLMs | Per-page |
+| `/llms.txt` | Documentation index | AI assistants | Small (~5KB) |
+| `/llms-full.txt` | Complete context (all pages) | AI deep context | Large (~500KB+) |
+| `/mcp` | **Interactive queries** | **AI (MCP clients)** | **Minimal (250x less)** |
+
+### llms.txt - Static Index
 
 **Example:** Give an AI assistant your docs:
 ```
@@ -110,6 +115,37 @@ servemd automatically serves your docs in AI-friendly formats:
 ```
 
 The AI gets a structured index with absolute URLs to every page. For complete context, use `/llms-full.txt` which includes all page content inline.
+
+### MCP - Interactive Queries (Recommended for AI)
+
+**Model Context Protocol** provides on-demand documentation access with **250x less context**:
+
+```json
+POST /mcp
+{
+  "method": "tools/call",
+  "params": {
+    "name": "search_docs",
+    "arguments": {
+      "query": "authentication",
+      "limit": 5
+    }
+  }
+}
+```
+
+**Benefits:**
+- 🎯 **Precise** — AI queries only what it needs
+- ⚡ **Fast** — No sending entire documentation every time
+- 💰 **Cost-effective** — 250x less tokens than llms-full.txt
+- 🔍 **Smart** — Full-text search with Whoosh
+
+**Available MCP Tools:**
+- `search_docs` — Semantic search across documentation
+- `get_doc_page` — Retrieve specific pages with section filtering
+- `list_doc_pages` — List all available pages by category
+
+**See [MCP Integration Guide](docs/features/mcp.md)** for details.
 
 ---
 
@@ -123,9 +159,13 @@ The AI gets a structured index with absolute URLs to every page. For complete co
 - ✅ Tables, task lists, footnotes, Mermaid diagrams
 
 ### For AI
-- 🤖 **llms.txt** — structured documentation index
-- 🤖 **llms-full.txt** — complete context export
-- 🤖 **MCP endpoint** — interactive queries (250x less context)
+- 🤖 **llms.txt** — Structured documentation index (5KB)
+- 🤖 **llms-full.txt** — Complete context export (500KB+)
+- 🔌 **MCP endpoint** — Interactive queries via Model Context Protocol
+  - **250x less context** than llms-full.txt
+  - Full-text search with Whoosh
+  - On-demand page retrieval
+  - Section filtering
 - 🤖 Automatic link transformation to absolute URLs
 - 🤖 Curated or auto-generated indexes
 
@@ -133,8 +173,8 @@ The AI gets a structured index with absolute URLs to every page. For complete co
 - ⚡ Fast — disk caching, <5ms cached responses
 - 🔥 Hot reload in debug mode
 - 🔧 Zero configuration required
-- 🐍 Python 3.13+, FastAPI, Pydantic
-- 🧪 71 tests, 100% passing
+- 🐍 Python 3.11-3.14, FastAPI, Pydantic
+- 🧪 208 tests, 100% passing
 
 ---
 
@@ -158,11 +198,14 @@ docs/
 Configure via environment variables:
 
 ```bash
-DOCS_ROOT=./docs              # Documentation directory
-CACHE_ROOT=./__cache__        # Cache directory
-PORT=8080                     # Server port
-DEBUG=true                    # Enable debug mode
-BASE_URL=https://docs.site.com  # Base URL for llms.txt
+DOCS_ROOT=./docs                 # Documentation directory
+CACHE_ROOT=./__cache__           # Cache directory
+PORT=8080                        # Server port
+DEBUG=true                       # Enable debug mode
+BASE_URL=https://docs.site.com   # Base URL for llms.txt
+MCP_ENABLED=true                 # Enable MCP endpoint (default: true)
+MCP_RATE_LIMIT_REQUESTS=120      # MCP rate limit (requests per window)
+MCP_RATE_LIMIT_WINDOW=60         # MCP rate limit window (seconds)
 ```
 
 See [Configuration Guide](docs/configuration.md) for details.
@@ -209,7 +252,12 @@ src/docs_server/
 ├── markdown_service.py # Markdown rendering
 ├── llms_service.py     # LLMs.txt generation
 ├── templates.py        # HTML templates
-└── main.py            # FastAPI routes
+├── main.py             # FastAPI routes
+└── mcp/                # Model Context Protocol
+    ├── server.py       # MCP JSON-RPC handler
+    ├── tools.py        # MCP tools (search, get, list)
+    ├── search.py       # Full-text search with Whoosh
+    └── indexer.py      # Documentation indexing
 ```
 
 ---
@@ -219,7 +267,7 @@ src/docs_server/
 ```bash
 uv run pytest tests/ -v
 
-# 71 tests, 100% passing ✅
+# 208 tests, 100% passing ✅
 ```
 
 ---

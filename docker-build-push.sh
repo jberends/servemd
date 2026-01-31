@@ -33,21 +33,26 @@ docker buildx build \
     --platform linux/amd64 \
     --tag jberends/servemd:${VERSION} \
     --tag jberends/servemd:latest \
-    --tag ghcr.io/jberends/servemd:${VERSION} \
-    --tag ghcr.io/jberends/servemd:latest \
     --push \
     .
 
+# Optionally push to GHCR (uncomment if logged in)
+# docker buildx build \
+#     --platform linux/amd64 \
+#     --tag ghcr.io/jberends/servemd:${VERSION} \
+#     --tag ghcr.io/jberends/servemd:latest \
+#     --push \
+#     .
+
 echo ""
-echo "✅ Successfully built and pushed:"
-echo "  📦 Docker Hub:"
+echo "✅ Successfully built and pushed to Docker Hub:"
 echo "     - jberends/servemd:${VERSION}"
 echo "     - jberends/servemd:latest"
 echo ""
-echo "  📦 GitHub Container Registry:"
-echo "     - ghcr.io/jberends/servemd:${VERSION}"
-echo "     - ghcr.io/jberends/servemd:latest"
-echo ""
 echo "🔍 Verify:"
 echo "  docker pull jberends/servemd:${VERSION}"
-echo "  docker run -p 8080:8080 -v \$(pwd)/docs:/app/docs jberends/servemd:${VERSION}"
+echo "  docker run -p 8080:8080 -v \$(pwd)/docs:/app/__docs__ jberends/servemd:${VERSION}"
+echo ""
+echo "💡 To also push to GHCR:"
+echo "  1. Login: echo \$GITHUB_TOKEN | docker login ghcr.io -u jberends --password-stdin"
+echo "  2. Uncomment GHCR section in this script"

@@ -1,7 +1,7 @@
 [project]
 name = "servemd"
 dynamic = ["version"]
-description = "Beautiful markdown documentation server for humans and AI with native llms.txt support"
+description = "Beautiful markdown documentation server for humans and AI with native llms.txt and MCP (Model Context Protocol) support"
 readme = "README.md"
 requires-python = ">=3.11"
 license = "Apache-2.0"
@@ -14,9 +14,15 @@ keywords = [
     "server",
     "fastapi",
     "llms",
+    "llms-txt",
     "ai",
     "mcp",
+    "model-context-protocol",
+    "ai-assistant",
+    "context-protocol",
     "docs",
+    "whoosh",
+    "search",
 ]
 classifiers = [
     "Development Status :: 5 - Production/Stable",
@@ -33,6 +39,8 @@ classifiers = [
     "Topic :: Scientific/Engineering :: Artificial Intelligence",
     "Topic :: Software Development :: Documentation",
     "Topic :: Text Processing :: Markup :: Markdown",
+    "Topic :: Communications",
+    "Topic :: Internet :: WWW/HTTP :: Dynamic Content",
 ]
 dependencies = [
     "fastapi>=0.128.0",

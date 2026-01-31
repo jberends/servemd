@@ -22,7 +22,10 @@ RUN apt-get update && apt-get install -y \
 RUN pip install --no-cache-dir uv
 
 # Copy dependency files for layer caching
-COPY pyproject.toml uv.lock ./
+COPY pyproject.toml uv.lock README.md ./
+
+# Copy source code (needed for version detection during build)
+COPY src/ ./src/
 
 # Install Python dependencies
 RUN uv sync --frozen --no-dev
@@ -40,11 +43,9 @@ RUN apt-get update && apt-get install -y \
     curl \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy virtual environment from base stage
+# Copy virtual environment and source from base stage
 COPY --from=base /app/.venv /app/.venv
-
-# Copy application source code
-COPY src/ ./src/
+COPY --from=base /app/src /app/src
 
 # =============================================================================
 # DOCUMENTATION DIRECTORY SETUP

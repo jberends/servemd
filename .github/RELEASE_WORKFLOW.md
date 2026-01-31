@@ -22,7 +22,7 @@ gh release create v1.0.1 \
 ```
 
 That's it! GitHub Actions will automatically:
-- ✅ Run tests on Python 3.11, 3.12, 3.13
+- ✅ Run tests on Python 3.11, 3.12, 3.13, 3.14
 - ✅ Run linter checks
 - ✅ Build the package
 - ✅ Publish to PyPI
