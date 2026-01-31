@@ -8,7 +8,7 @@ Beautiful markdown documentation with native llms.txt support. Zero configuratio
 [![Python 3.13+](https://img.shields.io/badge/python-3.13+-blue.svg)](https://www.python.org/downloads/)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.115+-green.svg)](https://fastapi.tiangolo.com/)
 [![Tests](https://img.shields.io/badge/tests-71%20passing-brightgreen.svg)](tests/)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![License: Apache 2.0](https://img.shields.io/badge/License-Apache_2.0-yellow.svg)](LICENSE)
 
 ---
 
@@ -18,12 +18,12 @@ Unlike basic markdown servers, **servemd** is built for the AI era:
 
 ```
 Markdown → Beautiful HTML    → Humans
-         → llms.txt          → AI/LLMs  
+         → llms.txt          → AI/LLMs
          → llms-full.txt     → Complete AI context
          → /mcp endpoint     → AI assistants (250x less context)
 ```
 
-**For humans:** Nuxt UI-inspired design, three-column layout, zero configuration.  
+**For humans:** Nuxt UI-inspired design, three-column layout, zero configuration.
 **For AI:** Native llms.txt support, structured context, ready for the Model Context Protocol era.
 
 ---
