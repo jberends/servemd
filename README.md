@@ -1,7 +1,10 @@
-# Markdown Documentation Server
+# servemd
 
-A lightweight, fast, and **beautiful** documentation server that renders Markdown files as styled HTML with zero configuration.
+**Serve docs to humans and AI.**
 
+Beautiful markdown documentation with native llms.txt support. Zero configuration, production-ready.
+
+[![PyPI](https://img.shields.io/pypi/v/servemd.svg)](https://pypi.org/project/servemd/)
 [![Python 3.13+](https://img.shields.io/badge/python-3.13+-blue.svg)](https://www.python.org/downloads/)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.115+-green.svg)](https://fastapi.tiangolo.com/)
 [![Tests](https://img.shields.io/badge/tests-71%20passing-brightgreen.svg)](tests/)
@@ -9,115 +12,126 @@ A lightweight, fast, and **beautiful** documentation server that renders Markdow
 
 ---
 
-## 🌟 What Makes This Special?
+## Why servemd?
 
-This isn't just another static site generator. It's a **live documentation server** with remarkable features:
+Unlike basic markdown servers, **servemd** is built for the AI era:
 
-- ✨ **Zero Configuration** - Drop `.md` files and go
-- 🎨 **Beautiful Design** - Nuxt UI-inspired three-column layout
-- 🤖 **AI-Friendly** - Built-in llms.txt support for Claude, ChatGPT, etc.
-- ⚡ **Performance** - Smart caching, fast rendering
-- 🐳 **Docker Ready** - Production-optimized container
-- 🧪 **Well Tested** - 71 tests, 100% passing
-- 📱 **Responsive** - Mobile/tablet/desktop support
+```
+Markdown → Beautiful HTML    → Humans
+         → llms.txt          → AI/LLMs  
+         → llms-full.txt     → Complete AI context
+         → (planned) MCP     → AI assistants
+```
+
+**For humans:** Nuxt UI-inspired design, three-column layout, zero configuration.  
+**For AI:** Native llms.txt support, structured context, ready for the Model Context Protocol era.
+
+---
+
+## ✨ Features
+
+- 🎨 **Beautiful Design** — Nuxt UI-inspired three-column layout (sidebar, content, TOC)
+- 🤖 **AI-Native** — Built-in llms.txt and llms-full.txt for Claude, ChatGPT, Cursor, etc.
+- ✨ **Zero Configuration** — Drop `.md` files and go
+- ⚡ **Fast** — Smart disk caching, <5ms cached responses
+- 🐳 **Docker Ready** — Production-optimized container
+- 🧪 **Well Tested** — 71 tests, 100% passing
+- 📱 **Responsive** — Mobile, tablet, and desktop support
 
 ---
 
 ## 🚀 Quick Start
 
-### For End Users (Serve Your Own Docs)
+### Install
 
-**Option 1: Quick local serving with uvx** (no installation needed):
 ```bash
-cd /path/to/your/docs
-uvx --from servemd docs-server
+pip install servemd
 ```
 
-**Option 2: Docker with volume mount**:
+### Run
+
 ```bash
-docker run -it --rm -p 8080:8080 -v $(pwd):/app/docs ghcr.io/yourusername/servemd:latest
+# Serve docs from current directory
+servemd
+
+# Or specify a directory
+servemd ./my-docs
 ```
 
-**Option 3: Build custom Docker image**:
-```bash
-# Create Dockerfile in your docs directory (see examples/Dockerfile.user-template)
-FROM ghcr.io/yourusername/servemd:latest
-COPY . /app/docs/
+Visit **http://localhost:8080** — your documentation is live.
 
-# Build and run
-docker build -t my-docs:latest .
-docker run -p 8080:8080 my-docs:latest
+### Alternative: Docker
+
+```bash
+# With volume mount
+docker run -p 8080:8080 -v $(pwd):/app/docs ghcr.io/servemd/servemd:latest
+
+# Or build a custom image with your docs baked in
+FROM ghcr.io/servemd/servemd:latest
+COPY ./docs /app/docs/
 ```
 
-Visit **http://localhost:8080** - Your documentation is live! 🎉
-
-📚 **[Complete End-User Guide →](docs/quick-start-user.md)**
-
-### For Contributors (Develop ServeMD)
+### Alternative: uvx (no install)
 
 ```bash
-# Install with uv (recommended)
-pip install uv
+uvx servemd ./my-docs
+```
+
+📚 **[Complete Setup Guide →](docs/quick-start-user.md)**
+
+### For Contributors
+
+```bash
+git clone https://github.com/servemd/servemd
+cd servemd
 uv sync
-
-# Run the server
 uv run python -m docs_server
-
-# Or with custom docs directory
-DOCS_ROOT=./my-docs uv run python -m docs_server
 ```
 
 ---
 
-## 📖 Documentation
+## 🤖 AI-Native: llms.txt Support
 
-This project **documents itself**! The `/docs` folder contains comprehensive documentation powered by the server.
+servemd automatically serves your docs in AI-friendly formats:
 
-**Read the full documentation:** Run the server and visit http://localhost:8080
+| Endpoint | Purpose | Audience |
+|----------|---------|----------|
+| `/{page}.html` | Rendered HTML with navigation | Humans |
+| `/{page}.md` | Raw markdown | AI/LLMs |
+| `/llms.txt` | Documentation index | AI assistants |
+| `/llms-full.txt` | Complete context (all pages) | AI deep context |
 
-### Quick Links
+**Example:** Give an AI assistant your docs:
+```
+"Read my documentation at https://docs.example.com/llms.txt"
+```
 
-- **[Quick Setup](docs/quick-setup.md)** - Get running in 5 minutes
-- **[Markdown Features](docs/features/markdown.md)** - See what's possible
-- **[LLMs.txt Guide](docs/features/llms-txt.md)** - AI assistant integration ⭐
-- **[Configuration](docs/configuration.md)** - Environment variables
-- **[Docker Deployment](docs/deployment/docker.md)** - Production deployment
-- **[API Reference](docs/api/endpoints.md)** - HTTP endpoints
+The AI gets a structured index with absolute URLs to every page. For complete context, use `/llms-full.txt` which includes all page content inline.
 
 ---
 
 ## ✨ Key Features
 
-### Rich Markdown Support
-
-- ✅ Tables, code blocks with syntax highlighting
-- ✅ Task lists, footnotes, definition lists
-- ✅ Automatic table of contents
-- ✅ Math expressions (coming soon)
-- ✅ Mermaid diagrams
-
-### Beautiful UI
-
-- 🎨 Three-column responsive layout (sidebar, content, TOC)
+### For Humans
+- 🎨 Nuxt UI-inspired three-column layout (sidebar, content, TOC)
 - 🎨 Syntax highlighting with Pygments
-- 🎨 Active link highlighting
-- 🎨 Mobile-first design
+- 🎨 Responsive design (mobile, tablet, desktop)
 - 🎨 Dark mode ready
+- ✅ Tables, task lists, footnotes, Mermaid diagrams
 
-### AI Assistant Integration
-
-- 🤖 **llms.txt** endpoint for AI indexing
-- 🤖 **llms-full.txt** for complete context
-- 🤖 Automatic link transformation
+### For AI
+- 🤖 **llms.txt** — structured documentation index
+- 🤖 **llms-full.txt** — complete context export
+- 🤖 Automatic link transformation to absolute URLs
 - 🤖 Curated or auto-generated indexes
+- 🤖 MCP integration (planned)
 
-### Developer Experience
-
+### For Developers
+- ⚡ Fast — disk caching, <5ms cached responses
 - 🔥 Hot reload in debug mode
-- 🔥 Clear error messages
-- 🔥 Type hints everywhere
-- 🔥 Comprehensive test suite
-- 🔥 Fast dependency installation with `uv`
+- 🔧 Zero configuration required
+- 🐍 Python 3.13+, FastAPI, Pydantic
+- 🧪 71 tests, 100% passing
 
 ---
 
@@ -152,33 +166,31 @@ See [Configuration Guide](docs/configuration.md) for details.
 
 ---
 
-## 🎯 Use Cases & Deployment Guides
+## 🎯 Use Cases
 
-Perfect for:
+**servemd** is perfect for:
 
-- **Open Source Projects** - Self-hosted, beautiful docs
-- **Internal Teams** - Company documentation portals
-- **API Documentation** - REST/GraphQL API docs
-- **Technical Writing** - Blogs and tutorials
-- **Knowledge Bases** - Internal wikis
+- **SaaS Documentation** — Customer-facing support docs with AI assistant integration
+- **Open Source Projects** — Self-hosted, beautiful docs
+- **Internal Teams** — Company knowledge bases and wikis
+- **API Documentation** — REST/GraphQL API docs
+- **Technical Writing** — Blogs and tutorials
 
-### 📘 Deployment Guides
+### 📘 Deployment
 
-Choose your deployment method:
+| Method | Best For |
+|--------|----------|
+| [Local Development](docs/deployment/local-development.md) | Development, previewing |
+| [Docker](docs/deployment/docker.md) | Production, CI/CD |
+| [Cloud Platforms](docs/deployment/cloud-platforms.md) | Heroku, Railway, Fly.io, DigitalOcean |
+| [Kubernetes](docs/deployment/kubernetes.md) | k8s, k3s, Helm charts |
 
-1. **[Quick Start for End Users](docs/quick-start-user.md)** - Overview of all options
-2. **[Local Development](docs/deployment/local-development.md)** - uvx, pipx, Docker volumes
-3. **[User Dockerfile Template](docs/deployment/user-dockerfile.md)** - Build custom images
-4. **[Cloud Platforms](docs/deployment/cloud-platforms.md)** - Heroku, Railway, Fly.io, DigitalOcean, etc.
-5. **[Kubernetes](docs/deployment/kubernetes.md)** - k8s, k3s, Helm charts, GitOps
+### 🛠️ Examples
 
-### 🛠️ Ready-to-Use Examples
-
-Check the **[examples/](examples/)** directory for:
-- `serve-docs-local.sh` - Shell script for local serving
-- `Dockerfile.user-template` - User Dockerfile template
-- `docker-compose.user.yml` - Docker Compose setup
-- `k8s-simple.yaml` - Simple Kubernetes deployment
+Check **[examples/](examples/)** for ready-to-use templates:
+- `Dockerfile.user-template` — Custom Docker image
+- `docker-compose.user.yml` — Docker Compose setup
+- `k8s-simple.yaml` — Kubernetes deployment
 
 ---
 
@@ -197,23 +209,14 @@ src/docs_server/
 └── main.py            # FastAPI routes
 ```
 
-**Total: 1,502 lines across 9 focused modules**
-
 ---
 
 ## 🧪 Testing
 
-Comprehensive test coverage with pytest:
-
 ```bash
-# Run all tests
 uv run pytest tests/ -v
 
-# Results
-71 tests, 100% passing ✅
-- Unit tests: 57 tests
-- Integration tests: 14 tests
-- Execution time: <0.2s
+# 71 tests, 100% passing ✅
 ```
 
 ---
@@ -221,21 +224,10 @@ uv run pytest tests/ -v
 ## 🔧 Development
 
 ```bash
-# Clone
-git clone https://github.com/yourusername/markdown-docs-server
-cd markdown-docs-server
-
-# Install dependencies
+git clone https://github.com/servemd/servemd
+cd servemd
 uv sync --group dev
-
-# Run tests
 uv run pytest tests/ -v
-
-# Linting
-uv run ruff check src/
-uv run ruff format src/
-
-# Start dev server (auto-reload)
 DEBUG=true uv run python -m docs_server
 ```
 
@@ -251,81 +243,48 @@ DEBUG=true uv run python -m docs_server
 
 ---
 
-## 🤝 Contributing
+## 📖 Documentation
 
-Contributions welcome! This is a production-ready server with:
-
-- ✅ Python 3.13+ with modern features
-- ✅ FastAPI for performance
-- ✅ uv for fast dependency management
-- ✅ pytest for comprehensive testing
-- ✅ Ruff for linting and formatting
-
----
-
-## 📜 License
-
-MIT License - use freely for any project!
-
----
-
-## 🌐 Live Examples
-
-See it in action:
-
-1. **This Documentation** - Run the server and visit http://localhost:8080
-2. **Your Project** - Point `DOCS_ROOT` to your markdown files
-3. **Examples** - Check `/docs/examples/` for templates
-
----
-
-## 🎓 Learn More
-
-### Documentation Highlights
-
-- **[Markdown Features](docs/features/markdown.md)** - Complete capabilities showcase with examples
-- **[Navigation Guide](docs/features/navigation.md)** - Sidebar and topbar configuration
-- **[LLMs.txt Support](docs/features/llms-txt.md)** - AI assistant integration (remarkable!)
-- **[Docker Deployment](docs/deployment/docker.md)** - Production deployment guide
-- **[API Reference](docs/api/endpoints.md)** - All HTTP endpoints
+- **[Quick Setup](docs/quick-setup.md)** — Get running in 5 minutes
+- **[Markdown Features](docs/features/markdown.md)** — Tables, code blocks, diagrams
+- **[LLMs.txt Guide](docs/features/llms-txt.md)** — AI assistant integration
+- **[Navigation](docs/features/navigation.md)** — Sidebar and topbar configuration
+- **[Configuration](docs/configuration.md)** — Environment variables
+- **[API Reference](docs/api/endpoints.md)** — HTTP endpoints
 
 ---
 
 ## 🙋 Support
 
-- 📖 **Documentation**: http://localhost:8080 (after starting server)
-- 🐛 **Issues**: [GitHub Issues](https://github.com/yourusername/markdown-docs-server/issues)
-- 💬 **Discussions**: [GitHub Discussions](https://github.com/yourusername/markdown-docs-server/discussions)
+- 📖 **Documentation**: [docs.servemd.dev](https://docs.servemd.dev) or run locally
+- 🐛 **Issues**: [GitHub Issues](https://github.com/servemd/servemd/issues)
+- 💬 **Discussions**: [GitHub Discussions](https://github.com/servemd/servemd/discussions)
 
 ---
 
-## 🎉 Getting Started
+## 📜 License
 
-Ready to create beautiful documentation?
+MIT License — use freely for any project.
+
+---
+
+## 🎉 Get Started Now
 
 ```bash
-# 1. Install
-pip install uv && uv sync
-
-# 2. Prepare your docs
-mkdir -p docs
-cp docs/index.md docs/index.md.example  # Use examples
-
-# 3. Start server
-uv run python -m docs_server
-
-# 4. Open browser
-open http://localhost:8080
+pip install servemd
+servemd ./my-docs
 ```
 
-**That's it!** Your documentation is live in 4 commands! 🚀
+Visit **http://localhost:8080** — beautiful docs for humans, structured context for AI.
 
 ---
 
 <div align="center">
 
-**Built with ❤️ using Python, FastAPI, and Markdown**
+**servemd** — Serve docs to humans and AI
 
-[Documentation](http://localhost:8080) • [GitHub](https://github.com/yourusername/markdown-docs-server) • [Docker Hub](https://hub.docker.com/r/yourusername/markdown-docs-server)
+Built with Python, FastAPI, and Markdown
+
+[Documentation](https://docs.servemd.dev) · [PyPI](https://pypi.org/project/servemd/) · [GitHub](https://github.com/servemd/servemd)
 
 </div>
