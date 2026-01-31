@@ -1,0 +1,34 @@
+# =============================================================================
+# Custom Documentation Image - Example
+# =============================================================================
+# This Dockerfile shows how to create a custom image with YOUR documentation
+# baked into the image, based on the published servemd base image.
+# =============================================================================
+
+# Use the published servemd image as base
+FROM jberends/servemd:latest
+# Or use: ghcr.io/jberends/servemd:latest
+
+# =============================================================================
+# IMPORTANT: Copy YOUR documentation into DOCS_ROOT
+# =============================================================================
+# The DOCS_ROOT environment variable is already set to /app/__docs__
+# Simply copy your markdown files into this directory
+# =============================================================================
+
+# Remove the example docs (optional - only if you want a clean slate)
+RUN rm -rf ${DOCS_ROOT}/*
+
+# Copy YOUR documentation files into the image
+# Replace ./my-docs with the path to your documentation directory
+COPY ./my-docs/ ${DOCS_ROOT}/
+
+# That's it! The image is ready to run.
+# All server configuration is inherited from the base image.
+
+# =============================================================================
+# Build and run this image:
+# =============================================================================
+# docker build -f Dockerfile.custom-docs -t my-docs-server .
+# docker run -p 8080:8080 my-docs-server
+# =============================================================================

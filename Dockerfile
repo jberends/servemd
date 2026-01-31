@@ -1,48 +1,96 @@
-# Use Python 3.13 on Debian Trixie
-FROM python:3.13-trixie
+# =============================================================================
+# ServeM Documentation Server - Multi-stage Dockerfile
+# =============================================================================
+# This Dockerfile builds a production-ready image for serving markdown docs.
+# It uses multi-stage builds to keep the final image small and secure.
+# =============================================================================
+
+# -----------------------------------------------------------------------------
+# Stage 1: Base Image with Dependencies
+# -----------------------------------------------------------------------------
+FROM python:3.13-trixie AS base
 
 # Set working directory
 WORKDIR /app
 
-# Set environment variables
-ENV PYTHONPATH=/app/src
-ENV DOCS_ROOT=/app/docs
-ENV CACHE_ROOT=/app/cache
-ENV PORT=8080
-ENV DEBUG=false
-
-# Install system dependencies (if needed for markdown processing)
+# Install system dependencies
 RUN apt-get update && apt-get install -y \
     curl \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy pyproject.toml, uv.lock and README.md first for better layer caching
-COPY pyproject.toml uv.lock README.md ./
-
 # Install uv for faster dependency management
-RUN pip install uv
+RUN pip install --no-cache-dir uv
 
-# Install Python dependencies using uv
-RUN uv sync --frozen
+# Copy dependency files for layer caching
+COPY pyproject.toml uv.lock ./
 
-# Copy the source code
+# Install Python dependencies
+RUN uv sync --frozen --no-dev
+
+# -----------------------------------------------------------------------------
+# Stage 2: Application Image
+# -----------------------------------------------------------------------------
+FROM python:3.13-slim-trixie AS app
+
+# Set working directory
+WORKDIR /app
+
+# Install runtime dependencies only
+RUN apt-get update && apt-get install -y \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy virtual environment from base stage
+COPY --from=base /app/.venv /app/.venv
+
+# Copy application source code
 COPY src/ ./src/
 
-# Copy the documentation content to /app/docs
-COPY docs/ ./docs/
+# =============================================================================
+# DOCUMENTATION DIRECTORY SETUP
+# =============================================================================
+# DOCS_ROOT is where the server reads markdown files from.
+# Default location: /app/__docs__
+# 
+# This can be:
+# 1. Built into the image (COPY docs/ below) - for standalone images
+# 2. Mounted at runtime (docker run -v ./docs:/app/__docs__) - for development
+# =============================================================================
 
-# Create cache directory
-RUN mkdir -p /app/cache
+# Set DOCS_ROOT environment variable (where markdown files are read from)
+ENV DOCS_ROOT=/app/__docs__
 
-# Activate virtual environment by updating PATH
+# Create the docs directory
+RUN mkdir -p ${DOCS_ROOT}
+
+# Copy documentation files into the image
+# NOTE: This includes the example docs from the servemd repository.
+# For production, replace this with your own documentation:
+#   COPY ./my-docs/ /app/__docs__/
+# Or mount a volume at runtime:
+#   docker run -v $(pwd)/docs:/app/__docs__ servemd
+COPY docs/ ${DOCS_ROOT}/
+
+# =============================================================================
+# CACHE DIRECTORY SETUP
+# =============================================================================
+ENV CACHE_ROOT=/app/__cache__
+RUN mkdir -p ${CACHE_ROOT}
+
+# =============================================================================
+# SERVER CONFIGURATION
+# =============================================================================
+ENV PYTHONPATH=/app/src
 ENV PATH="/app/.venv/bin:$PATH"
+ENV PORT=8080
+ENV DEBUG=false
 
-# Expose the port
+# Expose HTTP port
 EXPOSE 8080
 
-# Health check
+# Health check endpoint
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-    CMD curl -f http://localhost:8080/health || exit 1
+    CMD curl -f http://localhost:${PORT}/health || exit 1
 
-# Run the application
+# Run the documentation server
 CMD ["python", "-m", "docs_server"]

@@ -5,6 +5,7 @@
 Beautiful markdown documentation with native llms.txt support. Zero configuration, production-ready.
 
 [![PyPI](https://img.shields.io/pypi/v/servemd.svg)](https://pypi.org/project/servemd/)
+[![Docker Hub](https://img.shields.io/docker/v/jberends/servemd?label=docker)](https://hub.docker.com/r/jberends/servemd)
 [![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.128+-green.svg)](https://fastapi.tiangolo.com/)
 [![Tests](https://img.shields.io/badge/tests-71%20passing-brightgreen.svg)](tests/)
@@ -63,13 +64,15 @@ Visit **http://localhost:8080** — your documentation is live.
 ### Alternative: Docker
 
 ```bash
-# With volume mount
-docker run -p 8080:8080 -v $(pwd):/app/docs ghcr.io/servemd/servemd:latest
+# Quick start - mount your docs
+docker run -p 8080:8080 -v $(pwd)/docs:/app/__docs__ jberends/servemd:latest
 
-# Or build a custom image with your docs baked in
-FROM ghcr.io/servemd/servemd:latest
-COPY ./docs /app/docs/
+# Or build custom image with docs baked in
+FROM jberends/servemd:latest
+COPY ./my-docs/ /app/__docs__/
 ```
+
+**See [DOCKER_README.md](DOCKER_README.md)** for complete Docker usage guide.
 
 ### Alternative: uvx (no install)
 
