@@ -20,6 +20,7 @@ This isn't just another static site generator. It's a **live documentation serve
 ### 🤖 AI-Friendly
 - **llms.txt** support for AI assistants
 - **llms-full.txt** for complete context
+- **MCP endpoint** for interactive queries (250x less context)
 - Automatic link transformation
 - Optimized for Claude, ChatGPT, and other LLMs
 
@@ -125,6 +126,7 @@ All other `.md` files are your content pages!
 | **Dual Mode** | Serve HTML or raw markdown |
 | **Assets** | Images, PDFs, videos supported |
 | **LLMs.txt** | Built-in AI assistant support |
+| **MCP Support** | Interactive queries via JSON-RPC (250x less context) |
 | **Responsive** | Mobile-first design |
 
 ---
@@ -151,6 +153,7 @@ Explore the documentation to see all features in action:
 - [**Markdown Features**](features/markdown.md) - See what's possible
 - [**Navigation Guide**](features/navigation.md) - Create beautiful menus
 - [**LLMs.txt Guide**](features/llms-txt.md) - AI assistant integration
+- [**MCP Integration**](features/mcp.md) - Interactive queries for LLMs
 - [**Docker Deployment**](deployment/docker.md) - Production deployment
 - [**API Reference**](api/endpoints.md) - HTTP endpoints
 - [**Configuration**](configuration.md) - Environment variables

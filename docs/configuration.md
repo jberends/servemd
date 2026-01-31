@@ -14,6 +14,16 @@ Configure the documentation server with environment variables and file structure
 | `DEBUG` | `false` | Enable debug mode with auto-reload |
 | `BASE_URL` | Auto-detected | Base URL for absolute links in llms.txt |
 
+### MCP Settings
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `MCP_ENABLED` | `true` | Enable/disable MCP endpoint |
+| `MCP_RATE_LIMIT_REQUESTS` | `120` | Max requests per window per IP |
+| `MCP_RATE_LIMIT_WINDOW` | `60` | Rate limit window in seconds |
+| `MCP_MAX_SEARCH_RESULTS` | `10` | Default max search results |
+| `MCP_SNIPPET_LENGTH` | `200` | Max characters for search snippets |
+
 ### Example Configurations
 
 **Development:**
@@ -353,6 +363,50 @@ http://localhost:8080/llms-full.txt       → Full documentation
 
 ---
 
+## MCP Cache Considerations
+
+### Kubernetes / k3s Deployments
+
+When deploying to Kubernetes or k3s with MCP enabled:
+
+**Cache Persistence:**
+- MCP search index is stored in `CACHE_ROOT/mcp/`
+- Each pod builds its own index on first startup (~200ms for typical docs)
+- Cache persists across container restarts if volume is mounted
+- Recommended: Use emptyDir volume for cache (ephemeral, fast)
+
+```yaml
+# Example volume mount for cache
+volumes:
+  - name: cache
+    emptyDir: {}
+volumeMounts:
+  - name: cache
+    mountPath: /app/cache
+```
+
+**Horizontal Scaling:**
+- Each pod maintains its own independent search index
+- Index rebuilds automatically when docs change (hash-based validation)
+- No shared state required between pods
+- Rate limiting is per-pod (each pod has 120 req/min limit)
+
+**Startup Performance:**
+- First startup: ~200ms to build index (100 docs)
+- Subsequent startups: ~10ms to load from cache
+- Health check passes immediately (MCP initialization is async)
+
+**Environment Variables:**
+```yaml
+env:
+  - name: MCP_ENABLED
+    value: "true"
+  - name: MCP_RATE_LIMIT_REQUESTS
+    value: "120"
+  - name: CACHE_ROOT
+    value: "/app/cache"
+```
+
 ## Production Checklist
 
 Before deploying to production:
@@ -367,6 +421,8 @@ Before deploying to production:
 - [ ] Add health check monitoring
 - [ ] Configure log aggregation
 - [ ] Set up backup for docs
+- [ ] For k8s/k3s: Configure emptyDir volume for cache
+- [ ] For k8s/k3s: Consider per-pod rate limit scaling
 
 ---
 

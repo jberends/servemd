@@ -6,10 +6,14 @@ Inspired by Nuxt UI design system and documentation patterns.
 
 import logging
 import re
+from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, HTTPException, Request
-from fastapi.responses import FileResponse, HTMLResponse, PlainTextResponse, RedirectResponse
+from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, PlainTextResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
+from slowapi import Limiter
+from slowapi.errors import RateLimitExceeded
+from slowapi.util import get_remote_address
 
 from .caching import get_cached_html, get_cached_llms, save_cached_html, save_cached_llms
 from .config import settings
@@ -22,13 +26,99 @@ from .templates import create_html_template
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+# Rate limiter for MCP endpoint
+limiter = Limiter(key_func=get_remote_address)
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """
+    Lifespan context manager for startup and shutdown events.
+    Handles MCP search index initialization and cleanup.
+    """
+    # Startup
+    if settings.MCP_ENABLED:
+        try:
+            from .mcp import get_index_manager
+
+            manager = get_index_manager()
+            success = await manager.initialize()
+
+            if success:
+                logger.info(f"🔍 MCP search index ready ({manager.get_backend().get_doc_count()} docs)")
+            else:
+                logger.warning("⚠️ MCP search index initialization failed - search may be unavailable")
+
+        except Exception as e:
+            logger.error(f"Failed to initialize MCP index: {e}", exc_info=True)
+            # Don't fail startup - MCP is optional feature
+    else:
+        logger.info("MCP disabled, skipping index initialization")
+
+    yield  # Application runs here
+
+    # Shutdown
+    if settings.MCP_ENABLED:
+        try:
+            from .mcp import get_index_manager
+
+            manager = get_index_manager()
+            manager.shutdown()
+            logger.debug("MCP search index shutdown complete")
+        except Exception as e:
+            logger.warning(f"Error during MCP shutdown: {e}")
+
+
 # FastAPI app initialization
 app = FastAPI(
     title="ServeMD Documentation Server",
     description="Lightweight documentation server with Nuxt UI-inspired design",
     version="1.0.0",
     debug=settings.DEBUG,
+    lifespan=lifespan,
 )
+
+# Add rate limiter to app state
+app.state.limiter = limiter
+
+
+@app.exception_handler(RateLimitExceeded)
+async def rate_limit_exceeded_handler(request: Request, exc: RateLimitExceeded):
+    """
+    Handle rate limit exceeded errors with JSON-RPC error format.
+    Returns a proper JSON-RPC error response for MCP clients.
+    """
+    # Try to extract request ID from body for JSON-RPC compliance
+    request_id = None
+    try:
+        body = await request.json()
+        request_id = body.get("id")
+    except Exception:
+        pass  # Body might not be JSON or already consumed
+
+    # Calculate retry after (extract from exc or use default)
+    retry_after = settings.MCP_RATE_LIMIT_WINDOW
+
+    # Structured logging for rate limit hits
+    ip = get_remote_address(request)
+    logger.warning(f"[MCP] rate limit exceeded ip={ip} limit={settings.MCP_RATE_LIMIT_REQUESTS}/{settings.MCP_RATE_LIMIT_WINDOW}s")
+
+    return JSONResponse(
+        status_code=429,
+        content={
+            "jsonrpc": "2.0",
+            "id": request_id,
+            "error": {
+                "code": -32603,
+                "message": "Rate limit exceeded",
+                "data": {
+                    "retryAfter": retry_after,
+                    "limit": f"{settings.MCP_RATE_LIMIT_REQUESTS}/{settings.MCP_RATE_LIMIT_WINDOW}s",
+                },
+            },
+        },
+    )
+
 
 # Mount static files for assets (images, logos, etc.)
 assets_path = settings.DOCS_ROOT / "assets"
@@ -47,7 +137,55 @@ async def health_check():
         "docs_root": str(settings.DOCS_ROOT.absolute()),
         "cache_root": str(settings.CACHE_ROOT.absolute()),
         "debug": settings.DEBUG,
+        "mcp_enabled": settings.MCP_ENABLED,
     }
+
+
+@app.post("/mcp")
+@limiter.limit(f"{settings.MCP_RATE_LIMIT_REQUESTS}/{settings.MCP_RATE_LIMIT_WINDOW}second")
+async def mcp_endpoint(request: Request):
+    """
+    MCP (Model Context Protocol) endpoint.
+    Handles JSON-RPC 2.0 requests from LLM clients.
+
+    Rate limited to MCP_RATE_LIMIT_REQUESTS per MCP_RATE_LIMIT_WINDOW seconds.
+    Default: 120 requests per 60 seconds per IP.
+
+    Supports:
+    - initialize: Handshake and capability negotiation
+    - tools/list: List available tools
+    - tools/call: Execute a tool (search_docs, get_doc_page, list_doc_pages)
+    """
+    if not settings.MCP_ENABLED:
+        return JSONResponse(
+            status_code=404,
+            content={"error": "MCP endpoint is disabled"},
+        )
+
+    try:
+        body = await request.json()
+    except Exception as e:
+        logger.warning(f"MCP: Invalid JSON in request: {e}")
+        return JSONResponse(
+            content={
+                "jsonrpc": "2.0",
+                "id": None,
+                "error": {
+                    "code": -32700,
+                    "message": "Parse error: Invalid JSON",
+                },
+            }
+        )
+
+    # Import here to avoid circular imports
+    from .mcp import handle_request
+
+    # Structured logging for MCP requests
+    method = body.get("method", "unknown")
+    request_id = body.get("id", "none")
+    logger.info(f"[MCP] method={method} id={request_id}")
+    result = await handle_request(body)
+    return JSONResponse(content=result)
 
 
 @app.get("/llms.txt")

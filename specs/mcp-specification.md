@@ -58,80 +58,99 @@ Add Model Context Protocol (MCP) support to ServeMD to enable LLMs to interactiv
 CACHE_ROOT/
 ├── html/              # Existing: rendered HTML
 ├── llms/              # Existing: llms.txt files
-└── mcp/               # NEW
-    └── search-index.json
+└── mcp/               # NEW: MCP search index
+    ├── whoosh/        # Whoosh index files
+    │   ├── _MAIN_*.toc
+    │   ├── _MAIN_*.seg
+    │   └── schema.pickle
+    └── metadata.json  # Cache validation metadata
 ```
 
 ### Cache Lifecycle
 
-**Startup:**
-1. Check if `search-index.json` exists in cache
-2. Validate cache (version, file count, DEBUG mode)
-3. If valid: load from disk (10ms)
-4. If invalid: rebuild and save (500ms for 100 docs)
+**Startup (Hash-Based Validation):**
+1. Check if Whoosh index exists in `CACHE_ROOT/mcp/whoosh/`
+2. Calculate SHA256 hash of all `.md` files (paths + mtimes) - <100ms
+3. Compare with cached hash in `metadata.json`
+4. If match: open Whoosh index (10-20ms) ✅ **FAST**
+5. If mismatch: rebuild index with Whoosh (1-2s for 500 docs) ✅ **ACCEPTABLE**
+
+**Cache Invalidation Triggers:**
+- Any file added/modified/deleted (hash changes)
+- DOCS_ROOT path changed
+- Index format version upgraded
+- DEBUG=true (always rebuild in dev)
 
 **Runtime:**
-- Index stays in memory
-- No rebuilds (production mode)
-- DEBUG mode: rebuild on each startup
+- Index loaded once on startup
+- Whoosh keeps index open for fast queries (15-40ms)
+- No rebuilds in production mode
+- DEBUG mode: always rebuilds for fresh data
 
 **Benefits:**
-- Fast bootup for new k8s pods (10ms vs 500ms)
-- No external services needed
-- Survives container restarts
+- Accurate change detection (hash-based)
+- Fast validation (<100ms)
+- Fast load from cache (10-20ms)
+- Persistent across container restarts
+- Works with volume-mounted docs
 
-### Index Format
+### Cache Metadata Format
+
+**File:** `CACHE_ROOT/mcp/metadata.json`
 
 ```json
 {
-  "version": "1.0",
-  "built_at": "2026-01-31T10:30:00Z",
+  "index_version": "1.0",
   "docs_root": "/app/docs",
-  "docs_count": 42,
-  "index": {
-    "api/endpoints.md": {
-      "path": "api/endpoints.md",
-      "title": "API Endpoints Reference",
-      "content": "full markdown content...",
-      "sections": [
-        {
-          "heading": "GET /llms.txt",
-          "level": 2,
-          "content": "section content...",
-          "line_start": 73,
-          "line_end": 84
-        }
-      ],
-      "mtime": 1706745600.0,
-      "size": 15234,
-      "word_count": 2341
-    }
-  }
+  "docs_hash": "a3f5c8d7b2e1...",
+  "docs_count": 237,
+  "built_at": "2026-01-31T10:30:00Z",
+  "build_duration_ms": 1847,
+  "whoosh_version": "2.7.4",
+  "python_version": "3.13.1"
 }
 ```
+
+**Whoosh Index:** Stored in binary format in `CACHE_ROOT/mcp/whoosh/` directory (Whoosh manages file structure internally)
 
 ---
 
 ## Search Implementation
 
-### Algorithm: Python In-Memory
+### Engine: Whoosh (Pure Python Full-Text Search)
 
-**Why not grep/ripgrep:**
-- Grep: Fast but no ranking, hard to extract snippets, external process
-- Python: Full control, structured output, 50-100ms (fast enough)
+**Decision:** Use Whoosh 2.7.4+ for production-ready search
 
-**Search Process:**
-1. Convert query to lowercase
-2. Score each document:
-   - Title match: high weight
-   - Section heading match: medium weight
-   - Content match: base weight
-3. Extract snippet (~200 chars around match)
-4. Sort by score, return top N
+**Why Whoosh:**
+- ✅ Pure Python (zero deployment complexity, works everywhere)
+- ✅ Production-ready features (fuzzy search, field boosting, BM25 scoring)
+- ✅ Persistent index (caches to disk)
+- ✅ Fast enough (15-40ms search, 1-2s build for 500 docs)
+- ✅ Mature and stable (actively maintained)
+- ✅ Small footprint (500KB installed)
+
+**Key Features:**
+- **Fuzzy search:** Handles typos automatically (`authentification~` → `authentication`)
+- **Field boosting:** Title matches score 2x higher than content
+- **Snippet extraction:** Auto-highlights query terms in results
+- **Query language:** Support boolean operators, wildcards, phrase queries
+- **Persistent storage:** Index saved to `CACHE_ROOT/mcp/whoosh/`
 
 **Performance:**
-- 10-100ms per query (up to 100 docs)
-- Scales to ~500 docs before considering hybrid grep approach
+- **Index build:** 1-2s for 500 docs (acceptable for startup)
+- **Index load:** 10-20ms (from cached disk index)
+- **Search time:** 15-40ms per query (imperceptible to users)
+- **Memory usage:** ~40MB for 500 docs
+
+**Schema:**
+```python
+path: ID (unique identifier)
+title: TEXT (boosted 2.0x)
+content: TEXT (full document text)
+headings: TEXT (boosted 1.5x)
+category: ID (for filtering)
+modified: DATETIME (for sorting)
+```
 
 ---
 
@@ -303,10 +322,12 @@ src/docs_server/
 ├── mcp/
 │   ├── __init__.py
 │   ├── server.py          # JSON-RPC handler
-│   ├── indexer.py         # Index builder/loader
-│   ├── search.py          # Search implementation
+│   ├── schema.py          # Whoosh schema definition
+│   ├── indexer.py         # Whoosh index builder/loader
+│   ├── search.py          # Whoosh search implementation
 │   ├── tools.py           # Tool implementations (3 tools)
-│   └── rate_limit.py      # Rate limiting middleware
+│   ├── rate_limit.py      # Rate limiting middleware
+│   └── cli.py             # CLI tools for cache management
 ├── main.py                # Add /mcp endpoint + startup event
 └── config.py              # Add MCP config
 ```
@@ -316,12 +337,15 @@ src/docs_server/
 ## Dependencies
 
 **New:**
+- `whoosh>=2.7.4` - Full-text search engine (pure Python)
 - `slowapi>=0.1.9` - Rate limiting
 
 **Existing (reused):**
 - `fastapi` - Web framework
 - `markdown` - Content parsing (via existing code)
 - `pathlib` - File operations
+
+**Total new dependencies:** 2 (both pure Python, no C extensions)
 
 ---
 

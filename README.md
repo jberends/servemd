@@ -20,7 +20,7 @@ Unlike basic markdown servers, **servemd** is built for the AI era:
 Markdown → Beautiful HTML    → Humans
          → llms.txt          → AI/LLMs  
          → llms-full.txt     → Complete AI context
-         → (planned) MCP     → AI assistants
+         → /mcp endpoint     → AI assistants (250x less context)
 ```
 
 **For humans:** Nuxt UI-inspired design, three-column layout, zero configuration.  
@@ -122,9 +122,9 @@ The AI gets a structured index with absolute URLs to every page. For complete co
 ### For AI
 - 🤖 **llms.txt** — structured documentation index
 - 🤖 **llms-full.txt** — complete context export
+- 🤖 **MCP endpoint** — interactive queries (250x less context)
 - 🤖 Automatic link transformation to absolute URLs
 - 🤖 Curated or auto-generated indexes
-- 🤖 MCP integration (planned)
 
 ### For Developers
 - ⚡ Fast — disk caching, <5ms cached responses
@@ -248,6 +248,7 @@ DEBUG=true uv run python -m docs_server
 - **[Quick Setup](docs/quick-setup.md)** — Get running in 5 minutes
 - **[Markdown Features](docs/features/markdown.md)** — Tables, code blocks, diagrams
 - **[LLMs.txt Guide](docs/features/llms-txt.md)** — AI assistant integration
+- **[MCP Integration](docs/features/mcp.md)** — Interactive queries for LLMs
 - **[Navigation](docs/features/navigation.md)** — Sidebar and topbar configuration
 - **[Configuration](docs/configuration.md)** — Environment variables
 - **[API Reference](docs/api/endpoints.md)** — HTTP endpoints

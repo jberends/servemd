@@ -18,6 +18,7 @@
   * [Markdown Features](features/markdown.html)
   * [Navigation](features/navigation.html)
   * [LLMs.txt Support](features/llms-txt.html)
+  * [MCP Integration](features/mcp.html)
 * [Deployment](deployment/docker.html)
   * [Docker Deployment](deployment/docker.html)
 * [API Reference](api/endpoints.html)

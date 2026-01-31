@@ -28,6 +28,69 @@ curl http://localhost:8080/health
 
 ---
 
+## MCP Endpoint
+
+### `POST /mcp`
+
+Model Context Protocol endpoint for interactive documentation queries via JSON-RPC 2.0.
+
+**Features:**
+- Full-text search with Whoosh
+- Fuzzy search (typo tolerance)
+- Page retrieval with section filtering
+- Rate limited (120 req/min per IP)
+
+**Available Methods:**
+- `initialize` — Handshake and capability negotiation
+- `tools/list` — List available tools
+- `tools/call` — Execute a tool (search_docs, get_doc_page, list_doc_pages)
+
+**Example - Initialize:**
+```bash
+curl -X POST http://localhost:8080/mcp \
+  -H "Content-Type: application/json" \
+  -d '{
+    "jsonrpc": "2.0",
+    "id": "1",
+    "method": "initialize",
+    "params": {
+      "protocolVersion": "2024-11-05",
+      "capabilities": {}
+    }
+  }'
+```
+
+**Example - Search:**
+```bash
+curl -X POST http://localhost:8080/mcp \
+  -H "Content-Type: application/json" \
+  -d '{
+    "jsonrpc": "2.0",
+    "id": "2",
+    "method": "tools/call",
+    "params": {
+      "name": "search_docs",
+      "arguments": {"query": "configuration", "limit": 5}
+    }
+  }'
+```
+
+**Status Codes:**
+- `200 OK` — Response returned (check JSON-RPC result/error)
+- `404 Not Found` — MCP disabled
+- `429 Too Many Requests` — Rate limit exceeded
+
+**Error Codes (JSON-RPC):**
+- `-32700` — Parse error (invalid JSON)
+- `-32600` — Invalid request (missing fields)
+- `-32601` — Method not found
+- `-32602` — Invalid params
+- `-32603` — Internal error (rate limit, index not ready)
+
+See [MCP Integration Guide](../features/mcp.md) for complete documentation.
+
+---
+
 ## LLMs.txt Endpoints
 
 ### `GET /llms.txt`
