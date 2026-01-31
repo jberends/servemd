@@ -101,7 +101,9 @@ async def rate_limit_exceeded_handler(request: Request, exc: RateLimitExceeded):
 
     # Structured logging for rate limit hits
     ip = get_remote_address(request)
-    logger.warning(f"[MCP] rate limit exceeded ip={ip} limit={settings.MCP_RATE_LIMIT_REQUESTS}/{settings.MCP_RATE_LIMIT_WINDOW}s")
+    logger.warning(
+        f"[MCP] rate limit exceeded ip={ip} limit={settings.MCP_RATE_LIMIT_REQUESTS}/{settings.MCP_RATE_LIMIT_WINDOW}s"
+    )
 
     return JSONResponse(
         status_code=429,

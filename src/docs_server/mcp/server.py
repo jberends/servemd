@@ -175,11 +175,12 @@ async def handle_tools_call(params: dict[str, Any] | None) -> dict[str, Any]:
             text = content[0].get("text", "")
             # Extract result count from text (e.g., "Found 3 result(s):")
             import re
+
             match = re.search(r"Found (\d+) result\(s\)", text)
             if match:
                 count = match.group(1)
                 query = arguments.get("query", "")
-                logger.info(f"[MCP] search query=\"{query}\" results={count}")
+                logger.info(f'[MCP] search query="{query}" results={count}')
 
     return result
 
