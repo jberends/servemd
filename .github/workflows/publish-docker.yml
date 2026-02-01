@@ -1,7 +1,8 @@
 name: Publish Docker Images
 
-# Automatically build and publish Docker images to Docker Hub and GHCR
-# when a GitHub release is created.
+# Automatically build and publish Docker images to Docker Hub and GHCR:
+# - On main branch: Build and push as 'latest'
+# - On version tags (v*.*.* ): Build and push with version tags + 'latest'
 #
 # Setup required:
 # 1. Docker Hub: Add DOCKERHUB_USERNAME and DOCKERHUB_TOKEN to GitHub secrets
@@ -12,8 +13,11 @@ name: Publish Docker Images
 # See DOCKER_PUBLISHING.md for detailed instructions
 
 on:
-  release:
-    types: [published]
+  push:
+    branches:
+      - main
+    tags:
+      - 'v*.*.*'
   workflow_dispatch:  # Allow manual trigger
 
 env:
@@ -28,28 +32,28 @@ permissions:
 jobs:
   build-and-push:
     runs-on: ubuntu-latest
-    
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-      
+
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
-      
+
       - name: Log in to Docker Hub
         uses: docker/login-action@v3
         with:
           registry: ${{ env.REGISTRY_DOCKERHUB }}
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
-      
+
       - name: Log in to GitHub Container Registry
         uses: docker/login-action@v3
         with:
           registry: ${{ env.REGISTRY_GHCR }}
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-      
+
       - name: Extract metadata (tags, labels)
         id: meta
         uses: docker/metadata-action@v5
@@ -58,27 +62,31 @@ jobs:
             ${{ env.REGISTRY_DOCKERHUB }}/${{ secrets.DOCKERHUB_USERNAME }}/servemd
             ${{ env.REGISTRY_GHCR }}/${{ env.IMAGE_NAME }}
           tags: |
+            # Version tags (only on version tag push like v1.2.3)
             type=semver,pattern={{version}}
             type=semver,pattern={{major}}.{{minor}}
             type=semver,pattern={{major}}
-            type=raw,value=latest,enable={{is_default_branch}}
+            # Always tag as 'latest' (on main branch or version tags)
+            type=raw,value=latest,enable=true
           labels: |
             org.opencontainers.image.title=ServeM
             org.opencontainers.image.description=Beautiful markdown documentation server for humans and AI
-            org.opencontainers.image.vendor=Jochem Berends
+            org.opencontainers.image.vendor=JBerends
             org.opencontainers.image.licenses=Apache-2.0
-      
-      - name: Build and push Docker images
+
+      - name: Build and push multi-platform Docker images
         uses: docker/build-push-action@v5
         with:
           context: .
+          # Build for both AMD64 (x86_64) and ARM64 (Apple Silicon, ARM servers)
           platforms: linux/amd64,linux/arm64
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+          # Use GitHub Actions cache for faster builds
           cache-from: type=gha
           cache-to: type=gha,mode=max
-      
+
       - name: Update Docker Hub description
         uses: peter-evans/dockerhub-description@v4
         with:

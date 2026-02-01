@@ -346,7 +346,7 @@ Shows detailed information about the index including configuration, statistics, 
 $ uv run python -m docs_server.mcp.cli info
 2026-01-31 13:49:02 [INFO] MCP Search Index Information
 2026-01-31 13:49:02 [INFO] ============================================================
-2026-01-31 13:49:02 [INFO] 
+2026-01-31 13:49:02 [INFO]
 📋 Configuration:
 2026-01-31 13:49:02 [INFO]   DOCS_ROOT:    /app/docs
 2026-01-31 13:49:02 [INFO]   MCP_ENABLED:  True

@@ -1,7 +1,7 @@
 # TODO: Future Enhancements
 
-**Project:** ServeMD  
-**Status:** Active Development  
+**Project:** ServeMD
+**Status:** Active Development
 **Last Updated:** 2026-01-31
 
 ---
