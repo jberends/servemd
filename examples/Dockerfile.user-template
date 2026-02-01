@@ -8,31 +8,40 @@
 #   3. Run: docker run -p 8080:8080 my-docs:latest
 #   4. Visit: http://localhost:8080
 
-# Use the official servemd image as base
-# Note: Replace with actual image once published to registry
-FROM ghcr.io/yourusername/servemd:latest
+# Use the official servemd image from Docker Hub
+FROM docker.io/jberends/servemd:latest
 
 # Copy your documentation into the container
-# This copies everything in the current directory to /app/docs/
-COPY . /app/docs/
+# DOCS_ROOT is set to /app/__docs__ in the base image
+COPY . /app/__docs__/
 
-# Optional: Set your production URL for llms.txt absolute links
+# Optional: Set your production URL for llms.txt and MCP absolute links
 ENV BASE_URL=https://docs.yourcompany.com
 
 # Optional: Disable debug mode in production
 ENV DEBUG=false
 
-# The base image already configures:
-# - DOCS_ROOT=/app/docs
-# - PORT=8080
-# - All Python dependencies
-# - CMD to start the server
+# Optional: Configure MCP settings
+# ENV MCP_ENABLED=true
+# ENV MCP_RATE_LIMIT_REQUESTS=120
+# ENV MCP_RATE_LIMIT_WINDOW=60
 
-# Optional: Add custom assets or generated content
+# The base image already configures:
+# - DOCS_ROOT=/app/__docs__
+# - CACHE_ROOT=/app/__cache__
+# - PORT=8080
+# - Python 3.11-3.14 support
+# - All dependencies (FastAPI, Whoosh, etc.)
+# - CMD to start the server
+# - Health check at /health
+# - MCP endpoint at /mcp
+
+# Optional: Add custom assets or preprocessing
 # RUN some-preprocessing-script.sh
 
 # That's it! Your documentation is now bundled in this image.
 # 
 # Build:  docker build -t my-docs:latest .
 # Run:    docker run -p 8080:8080 my-docs:latest
-# Push:   docker push ghcr.io/mycompany/docs:latest
+# Push:   docker tag my-docs:latest docker.io/mycompany/docs:latest
+#         docker push docker.io/mycompany/docs:latest

@@ -8,18 +8,19 @@ version: '3.8'
 services:
   # Option 1: Use base image with volume mount (for development)
   docs-dev:
-    image: ghcr.io/yourusername/servemd:latest
+    image: docker.io/jberends/servemd:latest
     container_name: servemd-dev
     ports:
       - "8080:8080"
     volumes:
       # Mount your local docs directory
-      - ./docs:/app/docs:ro
+      - ./docs:/app/__docs__:ro
       # Optional: Persistent cache
-      - docs-cache:/app/cache
+      - docs-cache:/app/__cache__
     environment:
       - DEBUG=true
       - BASE_URL=http://localhost:8080
+      - MCP_ENABLED=true
     restart: unless-stopped
     profiles:
       - dev
@@ -36,6 +37,9 @@ services:
     environment:
       - DEBUG=false
       - BASE_URL=https://docs.mycompany.com
+      - MCP_ENABLED=true
+      - MCP_RATE_LIMIT_REQUESTS=120
+      - MCP_RATE_LIMIT_WINDOW=60
     restart: always
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8080/health"]

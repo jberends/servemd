@@ -5,9 +5,8 @@
 # baked into the image, based on the published servemd base image.
 # =============================================================================
 
-# Use the published servemd image as base
-FROM jberends/servemd:latest
-# Or use: ghcr.io/jberends/servemd:latest
+# Use the published servemd image from Docker Hub
+FROM docker.io/jberends/servemd:latest
 
 # =============================================================================
 # IMPORTANT: Copy YOUR documentation into DOCS_ROOT

@@ -23,8 +23,8 @@ spec:
     spec:
       containers:
       - name: docs-server
-        # Replace with your custom image
-        image: ghcr.io/mycompany/docs:latest
+        # Replace with your custom image built from docker.io/jberends/servemd:latest
+        image: docker.io/mycompany/docs:latest
         imagePullPolicy: Always
         ports:
         - containerPort: 8080
@@ -34,6 +34,12 @@ spec:
           value: "https://docs.mycompany.com"
         - name: DEBUG
           value: "false"
+        - name: MCP_ENABLED
+          value: "true"
+        - name: MCP_RATE_LIMIT_REQUESTS
+          value: "120"
+        - name: MCP_RATE_LIMIT_WINDOW
+          value: "60"
         resources:
           requests:
             memory: "128Mi"
@@ -120,7 +126,7 @@ spec:
 #   kubectl scale deployment docs-server --replicas=5
 # 
 # Update image:
-#   kubectl set image deployment/docs-server docs-server=ghcr.io/mycompany/docs:v2.0.0
+#   kubectl set image deployment/docs-server docs-server=docker.io/mycompany/docs:v2.0.0
 # 
 # Delete:
 #   kubectl delete -f k8s-simple.yaml

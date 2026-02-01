@@ -44,8 +44,8 @@ Serve local directory without building an image:
 ```bash
 docker run -it --rm \
   -p 8080:8080 \
-  -v $(pwd)/docs:/app/docs \
-  ghcr.io/yourusername/servemd:latest
+  -v $(pwd)/docs:/app/__docs__ \
+  docker.io/jberends/servemd:latest
 ```
 
 ### Method B: Custom Image (Production)
@@ -64,8 +64,8 @@ docker build -t my-docs:latest .
 docker run -p 8080:8080 my-docs:latest
 
 # Push to registry
-docker tag my-docs:latest ghcr.io/mycompany/docs:latest
-docker push ghcr.io/mycompany/docs:latest
+docker tag my-docs:latest docker.io/mycompany/docs:latest
+docker push docker.io/mycompany/docs:latest
 ```
 
 ### Method C: Docker Compose
@@ -205,11 +205,14 @@ All deployment methods support these environment variables:
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `DOCS_ROOT` | `./docs` | Path to documentation directory |
-| `CACHE_ROOT` | `./__cache__` | Cache directory path |
+| `DOCS_ROOT` | `/app/__docs__` | Path to documentation directory |
+| `CACHE_ROOT` | `/app/__cache__` | Cache directory path |
 | `PORT` | `8080` | Server port |
 | `DEBUG` | `false` | Enable debug mode (auto-reload) |
-| `BASE_URL` | Auto-detected | Base URL for absolute links |
+| `BASE_URL` | Auto-detected | Base URL for absolute links (llms.txt & MCP) |
+| `MCP_ENABLED` | `true` | Enable Model Context Protocol endpoint |
+| `MCP_RATE_LIMIT_REQUESTS` | `120` | MCP rate limit (requests per window) |
+| `MCP_RATE_LIMIT_WINDOW` | `60` | MCP rate limit window (seconds) |
 
 ### Examples
 
@@ -222,8 +225,9 @@ docker run -p 3000:3000 \
   -e PORT=3000 \
   -e DEBUG=true \
   -e BASE_URL=https://docs.mycompany.com \
-  -v $(pwd):/app/docs \
-  ghcr.io/yourusername/servemd:latest
+  -e MCP_ENABLED=true \
+  -v $(pwd):/app/__docs__ \
+  docker.io/jberends/servemd:latest
 
 # Kubernetes (set in deployment YAML)
 env:
@@ -247,12 +251,12 @@ docker build -t my-docs:test .
 docker run -p 8080:8080 my-docs:test
 
 # 3. Push to registry
-docker tag my-docs:test ghcr.io/mycompany/docs:latest
-docker push ghcr.io/mycompany/docs:latest
+docker tag my-docs:test docker.io/mycompany/docs:latest
+docker push docker.io/mycompany/docs:latest
 
 # 4. Deploy to Kubernetes
 kubectl set image deployment/docs-server \
-  docs-server=ghcr.io/mycompany/docs:latest
+  docs-server=docker.io/mycompany/docs:latest
 ```
 
 ### Workflow 2: Git-based CI/CD
@@ -272,18 +276,18 @@ jobs:
       - uses: actions/checkout@v4
       
       - name: Build Docker image
-        run: docker build -t ghcr.io/${{ github.repository }}/docs:${{ github.sha }} .
+        run: docker build -t docker.io/${{ github.repository }}/docs:${{ github.sha }} .
       
       - name: Push to registry
         run: |
-          echo ${{ secrets.GITHUB_TOKEN }} | docker login ghcr.io -u ${{ github.actor }} --password-stdin
-          docker push ghcr.io/${{ github.repository }}/docs:${{ github.sha }}
-          docker tag ghcr.io/${{ github.repository }}/docs:${{ github.sha }} ghcr.io/${{ github.repository }}/docs:latest
-          docker push ghcr.io/${{ github.repository }}/docs:latest
+          echo ${{ secrets.DOCKERHUB_TOKEN }} | docker login docker.io -u ${{ secrets.DOCKERHUB_USERNAME }} --password-stdin
+          docker push docker.io/${{ github.repository }}/docs:${{ github.sha }}
+          docker tag docker.io/${{ github.repository }}/docs:${{ github.sha }} docker.io/${{ github.repository }}/docs:latest
+          docker push docker.io/${{ github.repository }}/docs:latest
       
       - name: Deploy to Kubernetes
         run: |
-          kubectl set image deployment/docs-server docs-server=ghcr.io/${{ github.repository }}/docs:${{ github.sha }}
+          kubectl set image deployment/docs-server docs-server=docker.io/${{ github.repository }}/docs:${{ github.sha }}
           kubectl rollout status deployment/docs-server
 ```
 
@@ -321,10 +325,10 @@ Error: Permission denied
 **Solution**: Check your volume mount:
 ```bash
 # Use absolute path
-docker run -v $(pwd):/app/docs ...
+docker run -v $(pwd):/app/__docs__ ...
 
 # Or use named volume
-docker run -v docs-data:/app/docs ...
+docker run -v docs-data:/app/__docs__ ...
 ```
 
 ## Next Steps

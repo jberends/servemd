@@ -53,7 +53,7 @@ Edit this file (\`index.md\`) to customize your homepage.
 - ✨ Beautiful design
 - 🚀 Fast rendering
 - 📱 Mobile responsive
-- 🤖 AI-friendly (llms.txt)
+- 🤖 AI-friendly (llms.txt + MCP)
 EOF
 
     # Create sidebar.md if missing
@@ -104,6 +104,8 @@ if ps -p $SERVER_PID > /dev/null; then
     echo -e "${BLUE}🌐 Open in browser:${NC}"
     echo -e "   ${GREEN}http://localhost:${PORT}${NC}"
     echo -e "   ${GREEN}http://localhost:${PORT}/health${NC}"
+    echo -e "   ${GREEN}http://localhost:${PORT}/llms.txt${NC}"
+    echo -e "   ${GREEN}http://localhost:${PORT}/mcp${NC} (POST - MCP endpoint)"
     echo ""
     echo -e "${BLUE}📝 Edit your files and refresh to see changes${NC}"
     echo -e "${BLUE}⏹️  Press Ctrl+C to stop the server${NC}"

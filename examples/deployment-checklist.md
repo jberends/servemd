@@ -19,12 +19,12 @@ This checklist helps ensure a smooth deployment of ServeMD with MCP support.
 - [ ] Test container locally:
   ```bash
   docker run -p 8080:8080 \
-    -v $(pwd)/docs:/app/docs \
+    -v $(pwd)/docs:/app/__docs__ \
     -e MCP_ENABLED=true \
-    servemd
+    docker.io/jberends/servemd:latest
   ```
 - [ ] Verify startup time (<2 seconds)
-- [ ] Check cache creation: `docker exec <container> ls /app/cache/mcp/`
+- [ ] Check cache creation: `docker exec <container> ls /app/__cache__/mcp/`
 
 ### 3. API Testing
 
@@ -76,9 +76,9 @@ curl -X POST http://localhost:8080/mcp \
 Verify environment variables:
 
 ```bash
-# Required
-DOCS_ROOT=/app/docs
-CACHE_ROOT=/app/cache
+# Required (defaults in Docker image)
+DOCS_ROOT=/app/__docs__
+CACHE_ROOT=/app/__cache__
 
 # Optional (with defaults)
 MCP_ENABLED=true
@@ -87,6 +87,7 @@ MCP_RATE_LIMIT_WINDOW=60
 MCP_MAX_SEARCH_RESULTS=10
 MCP_SNIPPET_LENGTH=200
 DEBUG=false
+BASE_URL=https://docs.yourcompany.com
 ```
 
 ### 6. Kubernetes Deployment
@@ -100,7 +101,7 @@ If deploying to k8s/k3s:
       emptyDir: {}
   volumeMounts:
     - name: cache
-      mountPath: /app/cache
+      mountPath: /app/__cache__
   ```
 - [ ] Set resource limits (recommended: 256Mi memory)
 - [ ] Configure liveness probe: `GET /health`
@@ -222,7 +223,7 @@ kubectl rollout undo deployment/servemd
 kubectl exec -it <pod> -- /bin/sh
 
 # Check docs directory
-ls -la /app/docs/
+ls -la /app/__docs__/
 
 # Manually build index
 python -m docs_server.mcp.cli build
@@ -246,7 +247,7 @@ env:
 Verify volume mount:
 
 ```bash
-kubectl exec -it <pod> -- ls -la /app/cache/mcp/
+kubectl exec -it <pod> -- ls -la /app/__cache__/mcp/
 ```
 
 ## Success Metrics
