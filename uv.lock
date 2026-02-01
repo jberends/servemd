@@ -34,6 +34,15 @@ wheels = [
 ]
 
 [[package]]
+name = "cached-property"
+version = "2.0.1"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/76/4b/3d870836119dbe9a5e3c9a61af8cc1a8b69d75aea564572e385882d5aefb/cached_property-2.0.1.tar.gz", hash = "sha256:484d617105e3ee0e4f1f58725e72a8ef9e93deee462222dbd51cd91230897641", size = 10574, upload-time = "2024-10-25T15:43:55.667Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/11/0e/7d8225aab3bc1a0f5811f8e1b557aa034ac04bdf641925b30d3caf586b28/cached_property-2.0.1-py3-none-any.whl", hash = "sha256:f617d70ab1100b7bcf6e42228f9ddcb78c676ffa167278d9f730d1c2fba69ccb", size = 7428, upload-time = "2024-10-25T15:43:54.711Z" },
+]
+
+[[package]]
 name = "certifi"
 version = "2026.1.4"
 source = { registry = "https://pypi.org/simple" }
@@ -776,7 +785,7 @@ dependencies = [
     { name = "python-multipart" },
     { name = "slowapi" },
     { name = "uvicorn", extra = ["standard"] },
-    { name = "whoosh" },
+    { name = "whoosh-reloaded" },
 ]
 
 [package.dev-dependencies]
@@ -799,7 +808,7 @@ requires-dist = [
     { name = "python-multipart", specifier = ">=0.0.22" },
     { name = "slowapi", specifier = ">=0.1.9" },
     { name = "uvicorn", extras = ["standard"], specifier = ">=0.40.0" },
-    { name = "whoosh", specifier = ">=2.7.4" },
+    { name = "whoosh-reloaded", specifier = ">=2.7.5" },
 ]
 
 [package.metadata.requires-dev]
@@ -1130,12 +1139,15 @@ wheels = [
 ]
 
 [[package]]
-name = "whoosh"
-version = "2.7.4"
+name = "whoosh-reloaded"
+version = "2.7.5"
 source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/25/2b/6beed2107b148edc1321da0d489afc4617b9ed317ef7b72d4993cad9b684/Whoosh-2.7.4.tar.gz", hash = "sha256:7ca5633dbfa9e0e0fa400d3151a8a0c4bec53bd2ecedc0a67705b17565c31a83", size = 968741, upload-time = "2016-04-04T01:19:32.327Z" }
+dependencies = [
+    { name = "cached-property" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/17/51/3fb4b9fdeaaf96512514ccf2871186333ce41a0de2ea48236a4056a5f6af/Whoosh-Reloaded-2.7.5.tar.gz", hash = "sha256:39ed7dfbd1fec97af33933107bdf78110728375ed0f2abb25dec6dbfdcb279d8", size = 1061606, upload-time = "2024-02-02T20:06:42.285Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/ba/19/24d0f1f454a2c1eb689ca28d2f178db81e5024f42d82729a4ff6771155cf/Whoosh-2.7.4-py2.py3-none-any.whl", hash = "sha256:aa39c3c3426e3fd107dcb4bde64ca1e276a65a889d9085a6e4b54ba82420a852", size = 468790, upload-time = "2016-04-04T01:19:40.379Z" },
+    { url = "https://files.pythonhosted.org/packages/69/90/866dfe421f188217ecd7339585e961034a7f4fdc96b62cec3b40a50dbdef/Whoosh_Reloaded-2.7.5-py2.py3-none-any.whl", hash = "sha256:2ab6aeeafb359fbff4beb3c704b960fd88240354f3363f1c5bdb5c2325cae80e", size = 551793, upload-time = "2024-02-02T20:06:39.868Z" },
 ]
 
 [[package]]

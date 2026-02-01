@@ -3,7 +3,7 @@ MCP (Model Context Protocol) module for ServeMD.
 Provides JSON-RPC 2.0 endpoint for LLM clients to interactively query documentation.
 
 Features:
-- Full-text search with Whoosh (fuzzy search, boolean operators)
+- Full-text search with Whoosh-Reloaded (fuzzy search, boolean operators)
 - Page retrieval with section filtering
 - Page listing with category filtering
 - Rate limiting protection
