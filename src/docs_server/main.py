@@ -6,21 +6,39 @@ Inspired by Nuxt UI design system and documentation patterns.
 
 import logging
 import re
+import warnings
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI, HTTPException, Request
-from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, PlainTextResponse, RedirectResponse
-from fastapi.staticfiles import StaticFiles
-from slowapi import Limiter
-from slowapi.errors import RateLimitExceeded
-from slowapi.util import get_remote_address
+# Suppress SyntaxWarnings from unmaintained whoosh library (Python 3.13 compatibility)
+# These filters must be set before any whoosh imports (which happen through FastAPI deps)
+warnings.filterwarnings("ignore", category=SyntaxWarning, module="whoosh")
+warnings.filterwarnings("ignore", message="invalid escape sequence", module="whoosh")
+warnings.filterwarnings("ignore", message='"is" with .*int.*literal', module="whoosh")
 
-from .caching import get_cached_html, get_cached_llms, save_cached_html, save_cached_llms
-from .config import settings
-from .helpers import extract_table_of_contents, get_file_path, parse_sidebar_navigation, parse_topbar_links
-from .llms_service import generate_llms_txt_content
-from .markdown_service import render_markdown_to_html
-from .templates import create_html_template
+from fastapi import FastAPI, HTTPException, Request  # noqa: E402
+from fastapi.responses import (  # noqa: E402
+    FileResponse,
+    HTMLResponse,
+    JSONResponse,
+    PlainTextResponse,
+    RedirectResponse,
+)
+from fastapi.staticfiles import StaticFiles  # noqa: E402
+from slowapi import Limiter  # noqa: E402
+from slowapi.errors import RateLimitExceeded  # noqa: E402
+from slowapi.util import get_remote_address  # noqa: E402
+
+from .caching import get_cached_html, get_cached_llms, save_cached_html, save_cached_llms  # noqa: E402
+from .config import settings  # noqa: E402
+from .helpers import (  # noqa: E402
+    extract_table_of_contents,
+    get_file_path,
+    parse_sidebar_navigation,
+    parse_topbar_links,
+)
+from .llms_service import generate_llms_txt_content  # noqa: E402
+from .markdown_service import render_markdown_to_html  # noqa: E402
+from .templates import create_html_template  # noqa: E402
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)

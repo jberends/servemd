@@ -20,9 +20,16 @@ import json
 import logging
 import shutil
 import sys
+import warnings
 
-from ..config import settings
-from .indexer import get_index_manager
+# Suppress SyntaxWarnings from unmaintained whoosh library (Python 3.13 compatibility)
+# These filters must be set before any whoosh imports
+warnings.filterwarnings("ignore", category=SyntaxWarning, module="whoosh")
+warnings.filterwarnings("ignore", message="invalid escape sequence", module="whoosh")
+warnings.filterwarnings("ignore", message='"is" with .*int.*literal', module="whoosh")
+
+from ..config import settings  # noqa: E402
+from .indexer import get_index_manager  # noqa: E402
 
 # Configure logging
 logging.basicConfig(
