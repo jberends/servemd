@@ -7,6 +7,69 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-02-02
+
+### Added
+
+#### Docker & CI/CD
+- **Docker Hub & GHCR Publishing** - Automated Docker image publishing workflow
+  - Publishes to both Docker Hub and GitHub Container Registry on release
+  - Multi-platform build support (linux/amd64, linux/arm64)
+  - Automatic Docker Hub description updates from README
+  - Container images available as `jberends/servemd:latest` and `ghcr.io/jberends/servemd:latest`
+- Comprehensive Docker documentation (`DOCKER_README.md`)
+- Docker build and push scripts (`docker-build-push.sh`)
+- Custom Dockerfile examples for user documentation
+- Enhanced Dockerfile with build optimizations
+
+#### Documentation & Examples
+- **Search alternatives guide** - Documentation on different search implementation options
+- **Release workflow documentation** - Complete guide for maintainers
+- Dependabot configuration for automated dependency updates
+- Updated deployment examples with MCP support
+- Enhanced Docker Compose examples
+- Improved Kubernetes deployment examples
+- Custom Dockerfile examples for users
+
+### Changed
+
+#### Dependencies
+- **Migrated to Whoosh-Reloaded** - Updated from unmaintained Whoosh to Whoosh-Reloaded
+  - Active maintenance and Python 3.13+ compatibility
+  - Added `cached-property` dependency for compatibility
+- Updated various GitHub Actions dependencies
+
+#### CI/CD Improvements
+- Enhanced CI workflow with better test coverage display
+- **Fixed dependency check workflow permissions** - Added write permissions for automated PR creation
+- Updated Docker image publishing workflow with multi-platform support
+- Improved GitHub Actions workflow configurations
+
+#### Documentation Structure
+- Consolidated MCP planning documents into single `TODO.md`
+- Removed outdated specification files to streamline project structure
+- Cleaned up 4,300+ lines of obsolete planning documentation
+
+#### Code Quality
+- Improved logging formatting in `main.py` and MCP server
+- Better error messages and debug output
+- Enhanced Docker build scripts with better error handling
+
+### Fixed
+
+- **Python 3.13 Compatibility** - Suppressed SyntaxWarnings from Whoosh library
+  - Proper handling of invalid escape sequences in regex patterns
+  - Ensures clean operation on Python 3.13+
+- GitHub Actions permissions for automated dependency updates
+- Docker build process improvements
+
+### Technical Details
+
+- MCP endpoint now production-ready with all features from v0.1.0
+- Container images optimized for size and build speed
+- Automated publishing pipeline with version tagging
+- Multi-platform container support (amd64, arm64)
+
 ## [0.1.0] - 2026-01-31
 
 ### Added
@@ -110,5 +173,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
-[Unreleased]: https://github.com/jberends/servemd/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/jberends/servemd/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/jberends/servemd/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/jberends/servemd/releases/tag/v0.1.0
