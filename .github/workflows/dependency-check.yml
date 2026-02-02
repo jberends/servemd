@@ -98,6 +98,9 @@ jobs:
     name: Check for Available Updates
     runs-on: ubuntu-latest
     if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    permissions:
+      contents: write
+      pull-requests: write
     
     steps:
     - name: Checkout code
