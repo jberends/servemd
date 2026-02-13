@@ -8,15 +8,19 @@
 # -----------------------------------------------------------------------------
 # Stage 1: Base Image with Dependencies
 # -----------------------------------------------------------------------------
-FROM python:3.13-trixie AS base
+FROM python:3.13-bookworm AS base
 
 # Set working directory
 WORKDIR /app
 
-# Install system dependencies
-RUN apt-get update && apt-get install -y \
+# Security: Update packages and install only necessary dependencies
+RUN apt-get update && \
+    apt-get upgrade -y && \
+    apt-get install -y --no-install-recommends \
     curl \
-    && rm -rf /var/lib/apt/lists/*
+    ca-certificates \
+    && apt-get clean && \
+    rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
 # Install uv for faster dependency management
 RUN pip install --no-cache-dir uv
@@ -33,19 +37,28 @@ RUN uv sync --frozen --no-dev
 # -----------------------------------------------------------------------------
 # Stage 2: Application Image
 # -----------------------------------------------------------------------------
-FROM python:3.13-slim-trixie AS app
+FROM python:3.13-slim-bookworm AS app
+
+# Security: Create non-root user
+RUN groupadd -r servemd --gid=1000 && \
+    useradd -r -g servemd --uid=1000 --home-dir=/app --shell=/sbin/nologin servemd
 
 # Set working directory
 WORKDIR /app
 
-# Install runtime dependencies only
-RUN apt-get update && apt-get install -y \
+# Security: Update packages and install minimal runtime dependencies
+RUN apt-get update && \
+    apt-get upgrade -y && \
+    apt-get install -y --no-install-recommends \
     curl \
-    && rm -rf /var/lib/apt/lists/*
+    ca-certificates \
+    && apt-get clean && \
+    rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* \
+    && apt-get autoremove -y
 
 # Copy virtual environment and source from base stage
-COPY --from=base /app/.venv /app/.venv
-COPY --from=base /app/src /app/src
+COPY --from=base --chown=servemd:servemd /app/.venv /app/.venv
+COPY --from=base --chown=servemd:servemd /app/src /app/src
 
 # =============================================================================
 # DOCUMENTATION DIRECTORY SETUP
@@ -62,7 +75,7 @@ COPY --from=base /app/src /app/src
 ENV DOCS_ROOT=/app/__docs__
 
 # Create the docs directory
-RUN mkdir -p ${DOCS_ROOT}
+RUN mkdir -p ${DOCS_ROOT} && chown servemd:servemd ${DOCS_ROOT}
 
 # Copy documentation files into the image
 # NOTE: This includes the example docs from the servemd repository.
@@ -70,13 +83,13 @@ RUN mkdir -p ${DOCS_ROOT}
 #   COPY ./my-docs/ /app/__docs__/
 # Or mount a volume at runtime:
 #   docker run -v $(pwd)/docs:/app/__docs__ servemd
-COPY docs/ ${DOCS_ROOT}/
+COPY --chown=servemd:servemd docs/ ${DOCS_ROOT}/
 
 # =============================================================================
 # CACHE DIRECTORY SETUP
 # =============================================================================
 ENV CACHE_ROOT=/app/__cache__
-RUN mkdir -p ${CACHE_ROOT}
+RUN mkdir -p ${CACHE_ROOT} && chown servemd:servemd ${CACHE_ROOT}
 
 # =============================================================================
 # SERVER CONFIGURATION
@@ -86,6 +99,9 @@ ENV PATH="/app/.venv/bin:$PATH"
 ENV PORT=8080
 ENV DEBUG=false
 
+# Security: Run as non-root user
+USER servemd
+
 # Expose HTTP port
 EXPOSE 8080
 
@@ -93,5 +109,5 @@ EXPOSE 8080
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
     CMD curl -f http://localhost:${PORT}/health || exit 1
 
-# Run the documentation server
+# Run the documentation server (exec form for security)
 CMD ["python", "-m", "docs_server"]

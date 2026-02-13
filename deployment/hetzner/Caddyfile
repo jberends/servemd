@@ -1,0 +1,9 @@
+# Caddyfile for servemd reverse proxy
+# DOMAIN env: empty = HTTP on :80, set = HTTPS with auto Let's Encrypt
+# Single:  DOMAIN=docs.yourdomain.com
+# Multiple: DOMAIN=docs.example.com www.docs.example.com api.example.com
+# (alle domeinen moeten via CNAME naar deze server wijzen)
+
+{$DOMAIN::80} {
+    reverse_proxy servemd:8080
+}

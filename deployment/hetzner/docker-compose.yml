@@ -1,0 +1,57 @@
+# Minimal secure servemd deployment for Hetzner VPS
+# - servemd: jberends/servemd:latest (built-in docs)
+# - Caddy: reverse proxy with automatic HTTPS when DOMAIN is set
+# - Auto-updates: cron job (see install-update-cron.sh)
+#
+# Usage:
+#   cd /opt/servemd && docker compose up -d
+#
+# For HTTPS: set DOMAIN in .env (e.g. DOMAIN=docs.yourdomain.com)
+# Then: echo "DOMAIN=docs.yourdomain.com" > .env
+
+services:
+  servemd:
+    image: jberends/servemd:latest
+    container_name: servemd
+    restart: unless-stopped
+    expose:
+      - "8080"
+    environment:
+      - DEBUG=false
+      - MCP_ENABLED=true
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    networks:
+      - web
+
+  caddy:
+    image: caddy:2-alpine
+    container_name: caddy
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"  # HTTP/3
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    environment:
+      - DOMAIN=${DOMAIN:-:80}
+    depends_on:
+      servemd:
+        condition: service_healthy
+    networks:
+      - web
+
+networks:
+  web:
+    driver: bridge
+
+volumes:
+  caddy_data:
+  caddy_config:
