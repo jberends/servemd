@@ -60,6 +60,7 @@ Documentation = "https://github.com/jberends/servemd/blob/main/docs/index.md"
 Repository = "https://github.com/jberends/servemd"
 Issues = "https://github.com/jberends/servemd/issues"
 Changelog = "https://github.com/jberends/servemd/blob/main/CHANGELOG.md"
+Demo = "https://servemd.me.cloudns.cl"
 
 [project.scripts]
 servemd = "docs_server.main:main"

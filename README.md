@@ -63,6 +63,8 @@ servemd ./my-docs
 
 Visit **http://localhost:8080** — your documentation is live.
 
+**Live demo:** [https://servemd.me.cloudns.cl](https://servemd.me.cloudns.cl)
+
 ### Alternative: Docker
 
 ```bash
@@ -309,6 +311,7 @@ DEBUG=true uv run python -m docs_server
 ## 🙋 Support
 
 - 📖 **Documentation**: [docs.servemd.dev](https://docs.servemd.dev) or run locally
+- 🚀 **Live demo**: [servemd.me.cloudns.cl](https://servemd.me.cloudns.cl)
 - 🐛 **Issues**: [GitHub Issues](https://github.com/servemd/servemd/issues)
 - 💬 **Discussions**: [GitHub Discussions](https://github.com/servemd/servemd/discussions)
 
@@ -337,6 +340,6 @@ Visit **http://localhost:8080** — beautiful docs for humans, structured contex
 
 Built with Python, FastAPI, and Markdown
 
-[Documentation](https://docs.servemd.dev) · [PyPI](https://pypi.org/project/servemd/) · [GitHub](https://github.com/servemd/servemd)
+[Documentation](https://docs.servemd.dev) · [Live Demo](https://servemd.me.cloudns.cl) · [PyPI](https://pypi.org/project/servemd/) · [GitHub](https://github.com/servemd/servemd)
 
 </div>
