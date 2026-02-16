@@ -15,6 +15,7 @@ from slowapi import Limiter
 from slowapi.errors import RateLimitExceeded
 from slowapi.util import get_remote_address
 
+from . import __version__
 from .caching import get_cached_html, get_cached_llms, save_cached_html, save_cached_llms
 from .config import settings
 from .helpers import (
@@ -84,7 +85,7 @@ async def lifespan(app: FastAPI):
 app = FastAPI(
     title="ServeMD Documentation Server",
     description="Lightweight documentation server with Nuxt UI-inspired design",
-    version="1.0.0",
+    version=__version__,
     debug=settings.DEBUG,
     lifespan=lifespan,
 )
