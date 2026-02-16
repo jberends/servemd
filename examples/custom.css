@@ -1,0 +1,19 @@
+/**
+ * servemd custom.css example
+ * Copy to your DOCS_ROOT and set CUSTOM_CSS=custom.css (default)
+ *
+ * Basic overrides: accent color, font, border radius
+ */
+
+:root {
+  /* Brand accent – links, active nav, borders */
+  --accent-primary: #10b981;
+
+  /* Optional: softer corners */
+  --color-code-border: #e5e7eb;
+}
+
+/* Custom font (load from CDN or local) */
+body {
+  font-family: "Inter", ui-sans-serif, system-ui, sans-serif;
+}

@@ -107,6 +107,7 @@ def create_html_template(
     is_search_page: bool = False,
     show_branding: bool = True,
     page_actions: dict[str, str] | None = None,
+    custom_css_url: str | None = None,
 ) -> str:
     """
     Create a complete HTML document with sidebar navigation and topbar.
@@ -422,18 +423,27 @@ def create_html_template(
             mistral_url=page_actions["mistral_url"],
         )
         # Wrap first h1 + actions in content-header for flex layout
-        pattern = re.compile(r"(<h1[^>]*>)(.*?)(</h1>)", re.DOTALL)
-        match = pattern.search(content)
-        if match:
-            wrapped = (
-                f'<div class="content-header">{match.group(1)}{match.group(2)}{match.group(3)}{actions_html}</div>'
-            )
-            final_content = content[: match.start()] + wrapped + content[match.end() :]
-        else:
+        # Use string search instead of regex to avoid ReDoS on user-controlled content
+        h1_found = False
+        h1_start = content.find("<h1")
+        if h1_start != -1:
+            open_end = content.find(">", h1_start)
+            if open_end != -1:
+                close_start = content.find("</h1>", open_end + 1)
+                if close_start != -1:
+                    close_end = close_start + 6
+                    h1_block = content[h1_start:close_end]
+                    wrapped = f'<div class="content-header">{h1_block}{actions_html}</div>'
+                    final_content = content[:h1_start] + wrapped + content[close_end:]
+                    h1_found = True
+        if not h1_found:
             # No h1 found, prepend actions at start
             final_content = f'<div class="content-header-actions">{actions_html}</div>{content}'
 
     safe_title = html.escape(title or "", quote=True)
+    custom_css_link = (
+        f'<link rel="stylesheet" href="{html.escape(custom_css_url, quote=True)}">' if custom_css_url else ""
+    )
 
     return f"""<!DOCTYPE html>
 <html lang="nl">
@@ -1415,6 +1425,7 @@ def create_html_template(
             opacity: 0.6;
         }}
     </style>
+    {custom_css_link}
 </head>
 <body>
     {sidebar_html}

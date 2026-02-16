@@ -66,53 +66,53 @@ Add file-based custom CSS support: a `custom.css` (or configurable name) in `DOC
 
 ### Phase 2: Endpoint & Serving
 
-- [ ] Add route `GET /custom.css` that serves the file from `DOCS_ROOT` (filename from `CUSTOM_CSS`)
-- [ ] Use `get_file_path()` or equivalent to resolve path with `is_safe_path()` validation
-- [ ] Return `FileResponse` with `media_type="text/css"`
-- [ ] Return 404 if file does not exist (no custom CSS – page still works)
-- [ ] Optional: add cache headers (e.g. `Cache-Control: max-age=3600`) or no-cache in DEBUG
+- [x] Add route `GET /custom.css` that serves the file from `DOCS_ROOT` (filename from `CUSTOM_CSS`)
+- [x] Use `get_file_path()` or equivalent to resolve path with `is_safe_path()` validation
+- [x] Return `FileResponse` with `media_type="text/css"`
+- [x] Return 404 if file does not exist (no custom CSS – page still works)
+- [x] Optional: add cache headers (e.g. `Cache-Control: max-age=3600`) or no-cache in DEBUG
 
 ### Phase 3: Template Integration
 
-- [ ] Add optional `<link rel="stylesheet" href="/custom.css">` in `create_html_template()`
-- [ ] Inject **after** the main `<style>` block so custom rules override defaults
-- [ ] Only include the link when the custom CSS file exists (check at render time or pass flag)
-- [ ] Fixed href `/custom.css` (env var only selects which file is served at that URL)
+- [x] Add optional `<link rel="stylesheet" href="/custom.css">` in `create_html_template()`
+- [x] Inject **after** the main `<style>` block so custom rules override defaults
+- [x] Only include the link when the custom CSS file exists (check at render time or pass flag)
+- [x] Fixed href `/custom.css` (env var only selects which file is served at that URL)
 
 ### Phase 4: Wiring & Logic
 
-- [ ] Add helper `get_custom_css_path() -> Path | None` that returns the resolved path if file exists and is safe
-- [ ] Pass `custom_css_url: str | None` (or similar) to `create_html_template()` – `None` when no custom CSS
-- [ ] Wire in both `serve_content` (doc pages) and `search_page` (search HTML response)
-- [ ] Ensure cached HTML is invalidated when custom CSS changes – custom CSS is in DOCS_ROOT, so docs hash may not include it; consider adding custom CSS mtime to cache key or excluding from HTML cache for simplicity (custom CSS is typically small; cache invalidation on doc change is acceptable)
+- [x] Add helper `get_custom_css_path() -> Path | None` that returns the resolved path if file exists and is safe
+- [x] Pass `custom_css_url: str | None` (or similar) to `create_html_template()` – `None` when no custom CSS
+- [x] Wire in both `serve_content` (doc pages) and `search_page` (search HTML response)
+- [x] Ensure cached HTML is invalidated when custom CSS changes – custom CSS is in DOCS_ROOT, so docs hash may not include it; consider adding custom CSS mtime to cache key or excluding from HTML cache for simplicity (custom CSS is typically small; cache invalidation on doc change is acceptable)
 
 ### Phase 5: Tests & Polish
 
-- [ ] Unit test: custom CSS file exists → link present in HTML, href `/custom.css`
-- [ ] Unit test: custom CSS file missing → no link in HTML, page still renders
-- [ ] Unit test: `CUSTOM_CSS=theme.css` → serves `theme.css` from DOCS_ROOT at `/custom.css`
-- [ ] Unit test: `/custom.css` endpoint returns 200 with `Content-Type: text/css`
-- [ ] Unit test: path traversal attempt (e.g. `CUSTOM_CSS=../etc/passwd`) rejected
-- [ ] Run `uv run ruff check src/ tests/` and `uv run ruff format src/ tests/`
-- [ ] Run `uv run pytest tests/ -v` – all tests pass
+- [x] Unit test: custom CSS file exists → link present in HTML, href `/custom.css`
+- [x] Unit test: custom CSS file missing → no link in HTML, page still renders
+- [x] Unit test: `CUSTOM_CSS=theme.css` → serves `theme.css` from DOCS_ROOT at `/custom.css`
+- [x] Unit test: `/custom.css` endpoint returns 200 with `Content-Type: text/css`
+- [x] Unit test: path traversal attempt (e.g. `CUSTOM_CSS=../etc/passwd`) rejected
+- [x] Run `uv run ruff check src/ tests/` and `uv run ruff format src/ tests/`
+- [x] Run `uv run pytest tests/ -v` – all tests pass
 
 ### Phase 6: Documentation & Examples
 
 **Configuration:**
-- [ ] Add `CUSTOM_CSS` to `docs/configuration.md` environment variables table
-- [ ] Brief "Custom CSS" section in configuration with file location, cascade order, `CUSTOM_CSS` usage
+- [x] Add `CUSTOM_CSS` to `docs/configuration.md` environment variables table
+- [x] Brief "Custom CSS" section in configuration with file location, cascade order, `CUSTOM_CSS` usage
 
 **Dedicated customization guide:**
-- [ ] Create `docs/features/customization.md` (or `docs/customization.md`)
-- [ ] Sections: Overview, Setup (CUSTOM_CSS, file placement), How it works (cascade, when loaded)
-- [ ] **CSS variables reference**: table of all `:root` variables with description and default value
-- [ ] Common customizations: accent color, font family, dark mode (link to night-mode example)
-- [ ] Add "Customization" under Features in `docs/sidebar.md` (link to `features/customization.html`)
+- [x] Create `docs/features/customization.md` (or `docs/customization.md`)
+- [x] Sections: Overview, Setup (CUSTOM_CSS, file placement), How it works (cascade, when loaded)
+- [x] **CSS variables reference**: table of all `:root` variables with description and default value
+- [x] Common customizations: accent color, font family, dark mode (link to night-mode example)
+- [x] Add "Customization" under Features in `docs/sidebar.md` (link to `features/customization.html`)
 
 **Examples to ship:**
-- [ ] `examples/custom.css` – basic overrides (accent color, font, maybe border radius)
-- [ ] `examples/night-mode.css` – full dark theme using `prefers-color-scheme: dark` or `:root` override
-- [ ] `examples/README.md` – brief note on copying examples to DOCS_ROOT and setting `CUSTOM_CSS`
+- [x] `examples/custom.css` – basic overrides (accent color, font, maybe border radius)
+- [x] `examples/night-mode.css` – full dark theme using `prefers-color-scheme: dark` or `:root` override
+- [x] `examples/README.md` – brief note on copying examples to DOCS_ROOT and setting `CUSTOM_CSS`
 
 ---
 

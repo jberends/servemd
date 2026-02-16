@@ -23,6 +23,7 @@ from .helpers import (
     build_mistral_url,
     extract_table_of_contents,
     format_search_results_human,
+    get_custom_css_path,
     get_file_path,
     parse_sidebar_navigation,
     parse_topbar_links,
@@ -464,8 +465,27 @@ async def _search_html_response(query: str) -> HTMLResponse | RedirectResponse:
         search_query=query,
         is_search_page=True,
         show_branding=settings.SERVEMD_BRANDING_ENABLED,
+        custom_css_url="/custom.css" if get_custom_css_path() else None,
     )
     return HTMLResponse(content=full_html)
+
+
+@app.get("/custom.css")
+async def serve_custom_css():
+    """
+    Serve custom CSS file from DOCS_ROOT.
+    Filename is from CUSTOM_CSS env var (default: custom.css).
+    Returns 404 if file does not exist.
+    """
+    css_path = get_custom_css_path()
+    if not css_path:
+        raise HTTPException(status_code=404, detail="Custom CSS file not found")
+    cache_control = "no-cache" if settings.DEBUG else "max-age=3600"
+    return FileResponse(
+        path=str(css_path),
+        media_type="text/css",
+        headers={"Cache-Control": cache_control},
+    )
 
 
 @app.get("/{path:path}")
@@ -535,6 +555,7 @@ async def serve_content(path: str, request: Request):
                 show_search=settings.MCP_ENABLED,
                 show_branding=settings.SERVEMD_BRANDING_ENABLED,
                 page_actions=page_actions,
+                custom_css_url="/custom.css" if get_custom_css_path() else None,
             )
 
             # Cache the rendered HTML

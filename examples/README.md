@@ -10,6 +10,12 @@ This directory contains practical examples for using ServeMD in various scenario
 | **[Dockerfile.user-template](./Dockerfile.user-template)** | User Dockerfile template | Building custom images |
 | **[docker-compose.user.yml](./docker-compose.user.yml)** | Docker Compose example | Local development, testing |
 | **[k8s-simple.yaml](./k8s-simple.yaml)** | Simple Kubernetes deployment | Production deployment |
+| **[custom.css](./custom.css)** | Basic theme overrides | Branding, accent color |
+| **[night-mode.css](./night-mode.css)** | Dark theme | System-aware dark mode |
+
+### Custom CSS
+
+Copy `custom.css` or `night-mode.css` to your `DOCS_ROOT` to customize the look and feel. The file is loaded on every page after default styles. Use `CUSTOM_CSS=night-mode.css` to serve a different filename. See [Customization](../docs/features/customization.html) for CSS variables and more examples.
 
 ## 1. Local Development
 
@@ -213,6 +219,7 @@ All deployment methods support these environment variables:
 | `MCP_ENABLED` | `true` | Enable Model Context Protocol endpoint |
 | `MCP_RATE_LIMIT_REQUESTS` | `120` | MCP rate limit (requests per window) |
 | `MCP_RATE_LIMIT_WINDOW` | `60` | MCP rate limit window (seconds) |
+| `CUSTOM_CSS` | `custom.css` | Custom CSS filename in DOCS_ROOT |
 
 ### Examples
 

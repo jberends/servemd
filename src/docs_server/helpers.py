@@ -142,6 +142,20 @@ def is_safe_path(path: str, base_path: Path) -> bool:
         return False
 
 
+def get_custom_css_path() -> Path | None:
+    """
+    Get the path to the custom CSS file if it exists and is safe.
+    Uses CUSTOM_CSS setting (filename only) from config.
+    Returns None if file does not exist or path is invalid.
+    """
+    css_path = settings.DOCS_ROOT / settings.CUSTOM_CSS
+    if not css_path.exists() or not css_path.is_file():
+        return None
+    if not is_safe_path(settings.CUSTOM_CSS, settings.DOCS_ROOT):
+        return None
+    return css_path
+
+
 def get_file_path(requested_path: str) -> Path | None:
     """
     Get the actual file path for a requested resource.

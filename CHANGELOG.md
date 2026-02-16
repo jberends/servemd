@@ -36,6 +36,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **ReDoS in page actions template** - Replaced regex `(<h1[^>]*>)(.*?)(</h1>)` with string-based search to avoid polynomial backtracking on user-controlled content (CodeQL py/polynomial-redos).
 - **Log injection in MCP search** - Sanitized user-provided search query and exception messages before logging to prevent log injection (CodeQL High).
 - **Sidebar and topbar link resolution** - Links in `sidebar.md` and `topbar.md` are now normalized to root-relative paths (`/dir/page.html`) during parsing. Previously, relative links like `deployment/docker.html` were resolved by the browser relative to the current page URL, causing broken links (e.g. `/dir/dir/page.html`) when viewing pages in subdirectories. Content markdown links remain relative to the current file and work correctly.
 
