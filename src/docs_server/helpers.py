@@ -77,6 +77,27 @@ def extract_table_of_contents(html_content: str) -> list[dict[str, str]]:
     return toc_items
 
 
+def _normalize_nav_link_to_root(link: str) -> str:
+    """
+    Normalize navigation links (from sidebar.md, topbar.md) to be root-relative.
+    These files live at DOCS_ROOT, so links like 'dir/page.html' must become
+    '/dir/page.html' to resolve correctly regardless of the current page URL.
+    """
+    link = link.strip()
+    if not link:
+        return link
+    # Skip external URLs
+    if link.startswith(("http://", "https://", "//", "mailto:", "tel:")):
+        return link
+    # Skip same-page anchors and query strings
+    if link.startswith("#") or link.startswith("?"):
+        return link
+    # Make root-relative for internal document links
+    if not link.startswith("/"):
+        return "/" + link
+    return link
+
+
 def convert_md_links_to_html(content: str) -> str:
     """
     Convert markdown links from .md to .html for rendered HTML mode.
@@ -139,6 +160,7 @@ def parse_topbar_links() -> dict[str, list[dict[str, str]]]:
                             title, link = link_match.groups()
                             if link.endswith(".md"):
                                 link = link.replace(".md", ".html")
+                            link = _normalize_nav_link_to_root(link)
                             sections[current_section].append({"type": "logo_link", "title": title, "link": link})
                         else:
                             # Just text after pipe
@@ -155,6 +177,7 @@ def parse_topbar_links() -> dict[str, list[dict[str, str]]]:
                         title, link = link_match.groups()
                         if link.endswith(".md"):
                             link = link.replace(".md", ".html")
+                        link = _normalize_nav_link_to_root(link)
                         sections[current_section].append({"type": "link", "title": title, "link": link})
                         logger.debug(f"Added link to {current_section}: {title} -> {link}")
 
@@ -202,6 +225,7 @@ def parse_sidebar_navigation() -> list[dict[str, Any]]:
                 if match:
                     title, link = match.groups()
                     html_link = link.replace(".md", ".html")
+                    html_link = _normalize_nav_link_to_root(html_link)
                     current_section = {
                         "title": title,
                         "link": html_link,
@@ -217,6 +241,7 @@ def parse_sidebar_navigation() -> list[dict[str, Any]]:
                 if match:
                     title, link = match.groups()
                     html_link = link.replace(".md", ".html")
+                    html_link = _normalize_nav_link_to_root(html_link)
                     current_section["children"].append({"title": title, "link": html_link})
                     logger.debug(f"Added child to {current_section['title']}: {title}")
 

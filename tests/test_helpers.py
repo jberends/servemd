@@ -169,15 +169,15 @@ def test_parse_topbar_links_with_content(tmp_path, monkeypatch):
     assert "middle" in result
     assert "right" in result
 
-    # Check left section
+    # Check left section - links are root-relative for correct resolution from any page
     assert len(result["left"]) == 2
     assert result["left"][0]["type"] == "logo_link"
     assert result["left"][0]["title"] == "Home"
-    assert result["left"][0]["link"] == "index.html"
+    assert result["left"][0]["link"] == "/index.html"
 
     assert result["left"][1]["type"] == "link"
     assert result["left"][1]["title"] == "Docs"
-    assert result["left"][1]["link"] == "docs.html"
+    assert result["left"][1]["link"] == "/docs.html"
 
     # Check right section
     assert len(result["right"]) == 2
@@ -220,23 +220,49 @@ def test_parse_sidebar_navigation_with_content(tmp_path, monkeypatch):
     # Check structure
     assert len(result) == 3
 
-    # First item - standalone link
+    # First item - standalone link - links are root-relative for correct resolution from any page
     assert result[0]["type"] == "link"
     assert result[0]["title"] == "Overview"
-    assert result[0]["link"] == "overview.html"
+    assert result[0]["link"] == "/overview.html"
     assert len(result[0]["children"]) == 0
 
     # Second item - group with children
     assert result[1]["type"] == "group_with_children"
     assert result[1]["title"] == "Getting Started"
-    assert result[1]["link"] == "getting-started.html"
+    assert result[1]["link"] == "/getting-started.html"
     assert len(result[1]["children"]) == 2
     assert result[1]["children"][0]["title"] == "Installation"
-    assert result[1]["children"][0]["link"] == "installation.html"
+    assert result[1]["children"][0]["link"] == "/installation.html"
 
     # Third item - standalone link
     assert result[2]["type"] == "link"
     assert result[2]["title"] == "API Reference"
+
+
+def test_parse_sidebar_navigation_root_relative_links(tmp_path, monkeypatch):
+    """Test that sidebar links in subdirs and external URLs are handled correctly"""
+    from docs_server import config
+    from docs_server.helpers import parse_sidebar_navigation
+
+    sidebar_content = """# Navigation
+
+* [Home](index.html)
+* [Subdir Page](deployment/docker.html)
+* [External](https://example.com)
+"""
+    sidebar_file = tmp_path / "sidebar.md"
+    sidebar_file.write_text(sidebar_content)
+
+    monkeypatch.setattr(config.settings, "DOCS_ROOT", tmp_path)
+
+    result = parse_sidebar_navigation()
+
+    # Root-level link gets leading slash
+    assert result[0]["link"] == "/index.html"
+    # Subdir link gets leading slash (fixes /dir/dir/page.html bug when viewing from subdir)
+    assert result[1]["link"] == "/deployment/docker.html"
+    # External URLs are left unchanged
+    assert result[2]["link"] == "https://example.com"
 
 
 def test_parse_sidebar_navigation_only_main_title(tmp_path, monkeypatch):

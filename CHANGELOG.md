@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Hetzner bare server deployment** - Minimal deployment guide for Debian 13 VPS on Hetzner (`deployment/hetzner/`). Includes Docker Compose stack with servemd + Caddy reverse proxy, automatic HTTPS via Let's Encrypt, and hourly auto-updates via cron. See `deployment/hetzner/README.md`.
+
+### Changed
+
+- **Docker container security hardening** - Significant security improvements to the Docker image:
+  - Switched base image from Debian Trixie (testing) to Debian Bookworm (stable), reducing CVEs by ~40–57%
+  - Container now runs as non-root `servemd` user (UID 1000) instead of root
+  - Applies security patches during build (`apt-get upgrade`)
+  - Minimal dependencies with `--no-install-recommends`
+  - Proper file ownership for all application files
+  - See `DOCKER_SECURITY.md` and `SECURITY_CHANGES.md` for details
+
+### Fixed
+
+- **Sidebar and topbar link resolution** - Links in `sidebar.md` and `topbar.md` are now normalized to root-relative paths (`/dir/page.html`) during parsing. Previously, relative links like `deployment/docker.html` were resolved by the browser relative to the current page URL, causing broken links (e.g. `/dir/dir/page.html`) when viewing pages in subdirectories. Content markdown links remain relative to the current file and work correctly.
+
 ## v0.2.0 (2026-02-02)
 
 ### Added

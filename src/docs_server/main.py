@@ -332,7 +332,8 @@ async def serve_content(path: str, request: Request):
 
             # Create full HTML document with styling and navigation
             title = f"{file_path.stem.replace('_', ' ').title()} - Documentation"
-            current_path = path  # The current .html path for active state
+            # Root-relative path for active state (matches sidebar/topbar link format)
+            current_path = f"/{path}" if path and not path.startswith("/") else path
             full_html = create_html_template(html_content, title, current_path, navigation, topbar_sections, toc_items)
 
             # Cache the rendered HTML
