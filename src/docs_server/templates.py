@@ -1375,7 +1375,7 @@ def create_html_template(
             right: 0;
             margin-top: 0.25rem;
             min-width: 260px;
-            background: white;
+            background: var(--color-bg-content);
             border: 1px solid var(--color-gray-200);
             border-radius: 0.5rem;
             box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);

@@ -118,13 +118,13 @@ Add file-based custom CSS support: a `custom.css` (or configurable name) in `DOC
 
 ## Success Criteria
 
-- [ ] Custom CSS file in `DOCS_ROOT` is loaded on every doc and search page
-- [ ] Custom CSS loads after default styles (correct cascade)
-- [ ] Configurable filename via `CUSTOM_CSS` env var
-- [ ] File served with `Content-Type: text/css`
-- [ ] CSS uses variables for surfaces/backgrounds (no hardcoded `white`) so themes override cleanly
-- [ ] Dedicated customization guide with CSS variables reference
-- [ ] Two examples shipped: `custom.css` (basic) and `night-mode.css` (dark theme)
+- [x] Custom CSS file in `DOCS_ROOT` is loaded on every doc and search page
+- [x] Custom CSS loads after default styles (correct cascade)
+- [x] Configurable filename via `CUSTOM_CSS` env var
+- [x] File served with `Content-Type: text/css`
+- [x] CSS uses variables for surfaces/backgrounds (no hardcoded `white`) so themes override cleanly
+- [x] Dedicated customization guide with CSS variables reference
+- [x] Two examples shipped: `custom.css` (basic) and `night-mode.css` (dark theme)
 
 ---
 
@@ -159,123 +159,3 @@ Add file-based custom CSS support: a `custom.css` (or configurable name) in `DOC
 | `examples/README.md` | **New** – how to use examples |
 | `tests/test_*.py` | New tests |
 
----
-
-## Appendix: Code Examples & References
-
-### A. Config pattern (from `config.py`)
-
-```python
-# Branding (existing)
-self.SERVEMD_BRANDING_ENABLED = os.getenv("SERVEMD_BRANDING_ENABLED", "true").lower() == "true"
-
-# Custom CSS (new)
-custom_css = os.getenv("CUSTOM_CSS", "custom.css").strip()
-if custom_css and custom_css.endswith(".css") and "/" not in custom_css and "\\" not in custom_css:
-    self.CUSTOM_CSS = custom_css
-else:
-    self.CUSTOM_CSS = "custom.css"
-```
-
-### B. Static file serving (from `main.py`)
-
-```python
-# Existing: assets mount
-assets_path = settings.DOCS_ROOT / "assets"
-if assets_path.exists():
-    app.mount("/assets", StaticFiles(directory=str(assets_path)), name="assets")
-
-# Existing: generic static assets via get_file_path
-# media_types = { ".png": "image/png", ... }
-# return FileResponse(path=str(file_path), media_type=media_type, filename=file_path.name)
-```
-
-### C. Template structure (from `templates.py`)
-
-The main `<style>` block ends around line 866, followed by `</head>`. Custom CSS link should go between `</style>` and `</head>`:
-
-```html
-    </style>
-    {custom_css_link}
-</head>
-```
-
-Where `custom_css_link` is either empty or:
-```html
-<link rel="stylesheet" href="/custom.css">
-```
-
-### D. Path validation (from `helpers.py`)
-
-```python
-def is_safe_path(path: str, base_path: Path) -> bool:
-    """Validate that the requested path is within the allowed directory boundaries."""
-    try:
-        abs_base = base_path.resolve()
-        abs_path = (base_path / path).resolve()
-        return os.path.commonpath([abs_base, abs_path]) == str(abs_base)
-    except (ValueError, OSError):
-        return False
-```
-
-### E. Cache consideration
-
-The docs hash in `config.py` includes only `.md` files. Custom CSS (`.css`) changes do not invalidate the HTML cache. Options:
-1. **Simple:** Document that users should run `--clear-cache` after changing custom CSS, or rely on DEBUG mode (which always invalidates).
-2. **Extended:** Include `custom.css` (or `CUSTOM_CSS` filename) mtime in cache key for HTML. More complex.
-3. **Pragmatic:** Custom CSS is loaded via `<link href="/custom.css">` – the browser fetches it separately. Cached HTML will include the link; the CSS file itself is not cached by our HTML cache. So when the user updates `custom.css`, the next request to `/custom.css` gets the new file. The HTML cache is fine as-is. No change needed.
-
-### F. Route ordering
-
-FastAPI matches routes in order. The catch-all `/{path:path}` would match `custom.css`. We need to register `GET /custom.css` (or a dynamic path) **before** the catch-all. Check `main.py` route order: `/health`, `/mcp`, `/llms.txt`, `/llms-full.txt`, `/`, `/search`, `/{path:path}`. Add `/custom.css` before `/{path:path}`. If we use a configurable path, we need a route like `GET /{css_filename}` that only matches when it equals `settings.CUSTOM_CSS` – or we keep it simple and always use `/custom.css` as the URL, and the env var only changes which file we serve from disk. That way the route is fixed: `GET /custom.css` serves `DOCS_ROOT / settings.CUSTOM_CSS`.
-
-Actually, re-reading the issue: "CUSTOM_CSS=custom.css or custom.css as default when present". So the env var is the filename. The URL could be the same as the filename: `/custom.css` or `/theme.css`. So we need a dynamic route. Options:
-- `@app.get("/{css_file:path}")` with a check for `css_file == settings.CUSTOM_CSS` – but that would conflict with the catch-all.
-- Simpler: always serve custom CSS at a fixed URL like `/custom.css`. The env var `CUSTOM_CSS` only specifies which *file* in DOCS_ROOT to serve. So the URL is always `/custom.css` regardless of the actual filename. That's a bit odd – if user sets `CUSTOM_CSS=theme.css`, the file is `theme.css` but the URL is `/custom.css`. Alternatively, the URL could match the filename: `/custom.css` when `CUSTOM_CSS=custom.css`, and `/theme.css` when `CUSTOM_CSS=theme.css`. That requires a dynamic route. We can add `@app.get(f"/{settings.CUSTOM_CSS}")` – but settings are loaded at import time, so that should work. We need to be careful: if `CUSTOM_CSS` is `theme.css`, the route would be `@app.get("/theme.css")`. But `theme.css` could conflict with a doc at `theme.css` (raw file serving). Looking at the catch-all: `.md` and `.html` are handled specially; other files are served as static. So `theme.css` would currently be served as a static file from DOCS_ROOT if it exists. So we're good – we could either:
-1. Add an explicit route for `/{CUSTOM_CSS}` that runs first and serves with `text/css`. If the file doesn't exist, we 404. The catch-all would not be reached for that path if we register our route first.
-2. Or use a reserved path like `/custom.css` always, and the env var only picks the file. Simpler.
-
-**Recommendation:** Use a **fixed URL** `/custom.css` for the custom stylesheet. The `CUSTOM_CSS` env var specifies which *file* in DOCS_ROOT to serve at that URL (e.g. `CUSTOM_CSS=theme.css` → serve `docs/theme.css` at `/custom.css`). This avoids route conflicts and keeps the template simple. Register the route before the catch-all `/{path:path}`.
-
-### G. CSS Variables (after Phase 0 cleanup)
-
-| Variable | Default | Purpose |
-|----------|---------|---------|
-| `--accent-primary` | `#f26a28` | Accent (links, active states, borders) |
-| `--accent-black` | `#000000` | Heading color |
-| `--color-primary` | `#3b82f6` | Primary UI (buttons, focus) |
-| `--color-primary-50` … `--color-primary-600` | (blue scale) | Primary variants |
-| `--color-neutral-50` | `#f9fafb` | Page background |
-| `--color-gray-50` … `--color-gray-900` | (gray scale) | Text, borders, surfaces |
-| `--color-bg-sidebar` | `white` (→ variable) | Sidebar background |
-| `--color-bg-topbar` | `white` | Topbar background |
-| `--color-bg-content` | `white` | Main content area |
-| `--color-bg-toc` | (sticky, inherits) | TOC sidebar |
-| `--color-bg-branding` | `white` | Branding footer |
-| `--color-btn-text` | `white` | Button text (e.g. search) |
-| `--color-search-highlight` | `#fefce8` | Search term highlight |
-
-### H. Night-mode example sketch
-
-```css
-/* examples/night-mode.css – Dark theme for servemd */
-@media (prefers-color-scheme: dark) {
-  :root {
-    --accent-primary: #f97316;
-    --accent-black: #f9fafb;
-    --color-primary: #60a5fa;
-    --color-primary-50: #1e3a8a;
-    --color-primary-100: #1e40af;
-    /* ... invert gray scale ... */
-    --color-neutral-50: #111827;
-    --color-gray-50: #1f2937;
-    --color-gray-900: #f9fafb;
-    --color-bg-sidebar: #1f2937;
-    --color-bg-topbar: #1f2937;
-    --color-bg-content: #111827;
-    --color-search-highlight: #422006;
-  }
-}
-```
-
-Or use `:root` override without media query for always-dark. Document both approaches in the guide.
