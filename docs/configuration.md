@@ -12,7 +12,7 @@ Configure the documentation server with environment variables and file structure
 | `CACHE_ROOT` | `./__cache__` or `/app/cache` | Cache directory for rendered HTML |
 | `PORT` | `8080` | HTTP server port |
 | `DEBUG` | `false` | Enable debug mode with auto-reload |
-| `BASE_URL` | Auto-detected | Base URL for absolute links in llms.txt |
+| `BASE_URL` | Auto-detected | Base URL for absolute links in llms.txt and Copy page AI links (ChatGPT, Claude) |
 | `SERVEMD_BRANDING_ENABLED` | `true` | Show "Powered by servemd" footer. Set to `false` to disable for white-label or self-hosted deployments |
 
 ### MCP Settings

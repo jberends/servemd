@@ -38,6 +38,13 @@ class Settings:
         # Branding
         self.SERVEMD_BRANDING_ENABLED = os.getenv("SERVEMD_BRANDING_ENABLED", "true").lower() == "true"
 
+        # Custom CSS
+        custom_css = os.getenv("CUSTOM_CSS", "custom.css").strip()
+        if custom_css and custom_css.endswith(".css") and "/" not in custom_css and "\\" not in custom_css:
+            self.CUSTOM_CSS = custom_css
+        else:
+            self.CUSTOM_CSS = "custom.css"
+
         # Markdown extensions configuration
         self.markdown_extensions = [
             "codehilite",

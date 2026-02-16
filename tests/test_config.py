@@ -101,6 +101,29 @@ def test_markdown_extension_configs():
     assert settings.markdown_extension_configs["pymdownx.tasklist"]["custom_checkbox"] is True
 
 
+def test_custom_css_default_and_env(monkeypatch):
+    """Test CUSTOM_CSS default (custom.css) and env override with validation."""
+    from docs_server.config import Settings
+
+    monkeypatch.delenv("CUSTOM_CSS", raising=False)
+    settings = Settings()
+    assert settings.CUSTOM_CSS == "custom.css"
+
+    monkeypatch.setenv("CUSTOM_CSS", "theme.css")
+    settings = Settings()
+    assert settings.CUSTOM_CSS == "theme.css"
+
+    # Path traversal rejected - falls back to default
+    monkeypatch.setenv("CUSTOM_CSS", "../etc/passwd")
+    settings = Settings()
+    assert settings.CUSTOM_CSS == "custom.css"
+
+    # Missing .css extension - falls back to default
+    monkeypatch.setenv("CUSTOM_CSS", "theme")
+    settings = Settings()
+    assert settings.CUSTOM_CSS == "custom.css"
+
+
 def test_servemd_branding_enabled_default_and_env(monkeypatch):
     """Test SERVEMD_BRANDING_ENABLED default (true) and env override."""
     from docs_server.config import Settings

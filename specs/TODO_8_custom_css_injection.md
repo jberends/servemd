@@ -21,9 +21,14 @@
 - Documented in configuration guide
 - Example `custom.css` in examples/ or docs/
 
-**Optional enhancements (out of scope for initial implementation):**
+**Expanded scope (user feedback):**
+- Ship multiple examples: basic `custom.css` + `night-mode.css` (dark theme)
+- Extensive documentation: dedicated customization guide + CSS variables reference
+- CSS cleanup: replace hardcoded colors (e.g. `white`) with variables so themes can override consistently
+
+**Optional enhancements (out of scope):**
 - Support multiple CSS files
-- Support inline custom CSS via config (for simple overrides)
+- Support inline custom CSS via config
 - Hot-reload of custom CSS in DEBUG mode
 
 **Dependencies:** None. Standalone feature.
@@ -42,16 +47,26 @@ Add file-based custom CSS support: a `custom.css` (or configurable name) in `DOC
 
 ## Phased Implementation Checklist
 
+### Phase 0: CSS Cleanup (prerequisite for good theming)
+
+- [x] Audit `templates.py` embedded CSS for hardcoded colors
+- [x] Add surface/background variables: `--color-bg-sidebar`, `--color-bg-topbar`, `--color-bg-content`, `--color-bg-toc`, `--color-bg-branding`
+- [x] Replace `background: white` with `var(--color-bg-*)` in sidebar, topbar, content, toc-sidebar, servemd-branding
+- [x] Add `--color-text-heading` (or use existing `--accent-black`) for heading color
+- [x] Add `--color-btn-text` for button text (e.g. search button `color: white`)
+- [x] Add `--color-search-highlight` for search term highlight (`#fefce8` → variable)
+- [x] Document all variables in a single `:root` block with clear comments; ensure no regressions
+
 ### Phase 1: Configuration
 
-- [ ] Add `CUSTOM_CSS` to `config.py` (default: `custom.css`)
-- [ ] Parse `os.getenv("CUSTOM_CSS", "custom.css")` – filename only, no path
-- [ ] Add helper to resolve custom CSS path: `settings.DOCS_ROOT / settings.CUSTOM_CSS`
-- [ ] Validate filename: must end with `.css` and not contain path separators (security)
+- [x] Add `CUSTOM_CSS` to `config.py` (default: `custom.css`)
+- [x] Parse `os.getenv("CUSTOM_CSS", "custom.css")` – filename only, no path
+- [x] Add helper to resolve custom CSS path: `settings.DOCS_ROOT / settings.CUSTOM_CSS`
+- [x] Validate filename: must end with `.css` and not contain path separators (security)
 
 ### Phase 2: Endpoint & Serving
 
-- [ ] Add route `GET /custom.css` (or dynamic path based on config) that serves the file from `DOCS_ROOT`
+- [ ] Add route `GET /custom.css` that serves the file from `DOCS_ROOT` (filename from `CUSTOM_CSS`)
 - [ ] Use `get_file_path()` or equivalent to resolve path with `is_safe_path()` validation
 - [ ] Return `FileResponse` with `media_type="text/css"`
 - [ ] Return 404 if file does not exist (no custom CSS – page still works)
@@ -62,7 +77,7 @@ Add file-based custom CSS support: a `custom.css` (or configurable name) in `DOC
 - [ ] Add optional `<link rel="stylesheet" href="/custom.css">` in `create_html_template()`
 - [ ] Inject **after** the main `<style>` block so custom rules override defaults
 - [ ] Only include the link when the custom CSS file exists (check at render time or pass flag)
-- [ ] Use configurable href (e.g. `/custom.css` or `/{CUSTOM_CSS}`) so it matches the served path
+- [ ] Fixed href `/custom.css` (env var only selects which file is served at that URL)
 
 ### Phase 4: Wiring & Logic
 
@@ -73,9 +88,9 @@ Add file-based custom CSS support: a `custom.css` (or configurable name) in `DOC
 
 ### Phase 5: Tests & Polish
 
-- [ ] Unit test: custom CSS file exists → link present in HTML, correct href
+- [ ] Unit test: custom CSS file exists → link present in HTML, href `/custom.css`
 - [ ] Unit test: custom CSS file missing → no link in HTML, page still renders
-- [ ] Unit test: `CUSTOM_CSS=theme.css` → link href is `/theme.css`
+- [ ] Unit test: `CUSTOM_CSS=theme.css` → serves `theme.css` from DOCS_ROOT at `/custom.css`
 - [ ] Unit test: `/custom.css` endpoint returns 200 with `Content-Type: text/css`
 - [ ] Unit test: path traversal attempt (e.g. `CUSTOM_CSS=../etc/passwd`) rejected
 - [ ] Run `uv run ruff check src/ tests/` and `uv run ruff format src/ tests/`
@@ -83,9 +98,21 @@ Add file-based custom CSS support: a `custom.css` (or configurable name) in `DOC
 
 ### Phase 6: Documentation & Examples
 
+**Configuration:**
 - [ ] Add `CUSTOM_CSS` to `docs/configuration.md` environment variables table
-- [ ] Document: file location, cascade order, use cases (branding, theming)
-- [ ] Add example `custom.css` in `examples/custom.css` or `docs/custom.css` with sample overrides (e.g. accent color, font)
+- [ ] Brief "Custom CSS" section in configuration with file location, cascade order, `CUSTOM_CSS` usage
+
+**Dedicated customization guide:**
+- [ ] Create `docs/features/customization.md` (or `docs/customization.md`)
+- [ ] Sections: Overview, Setup (CUSTOM_CSS, file placement), How it works (cascade, when loaded)
+- [ ] **CSS variables reference**: table of all `:root` variables with description and default value
+- [ ] Common customizations: accent color, font family, dark mode (link to night-mode example)
+- [ ] Add "Customization" under Features in `docs/sidebar.md` (link to `features/customization.html`)
+
+**Examples to ship:**
+- [ ] `examples/custom.css` – basic overrides (accent color, font, maybe border radius)
+- [ ] `examples/night-mode.css` – full dark theme using `prefers-color-scheme: dark` or `:root` override
+- [ ] `examples/README.md` – brief note on copying examples to DOCS_ROOT and setting `CUSTOM_CSS`
 
 ---
 
@@ -95,8 +122,9 @@ Add file-based custom CSS support: a `custom.css` (or configurable name) in `DOC
 - [ ] Custom CSS loads after default styles (correct cascade)
 - [ ] Configurable filename via `CUSTOM_CSS` env var
 - [ ] File served with `Content-Type: text/css`
-- [ ] Documented in configuration guide
-- [ ] Example `custom.css` provided
+- [ ] CSS uses variables for surfaces/backgrounds (no hardcoded `white`) so themes override cleanly
+- [ ] Dedicated customization guide with CSS variables reference
+- [ ] Two examples shipped: `custom.css` (basic) and `night-mode.css` (dark theme)
 
 ---
 
@@ -106,11 +134,12 @@ Add file-based custom CSS support: a `custom.css` (or configurable name) in `DOC
 |------|--------|
 | **Config** | New `CUSTOM_CSS` env var (default: `custom.css`) |
 | **Main** | New route for serving custom CSS; pass `custom_css_url` to template |
-| **Templates** | Conditional `<link>` after main styles |
+| **Templates** | CSS cleanup: new variables; `background: white` → `var(--color-bg-*)`; conditional `<link>` |
 | **Helpers** | Optional: `get_custom_css_path()` or logic in main |
 | **Tests** | New tests in `test_templates.py`, `test_main.py` (or `test_custom_css.py`) |
-| **Docs** | Update `docs/configuration.md`; add `examples/custom.css` |
-| **Caching** | Consider: custom CSS change should invalidate HTML cache; docs hash does not include `.css` – may need to extend hash or accept that custom CSS changes require cache clear |
+| **Docs** | `docs/configuration.md` + new `docs/features/customization.md` with variables reference |
+| **Examples** | `examples/custom.css`, `examples/night-mode.css`, `examples/README.md` |
+| **Caching** | No change; HTML cache fine; browser fetches CSS separately |
 
 ---
 
@@ -119,11 +148,15 @@ Add file-based custom CSS support: a `custom.css` (or configurable name) in `DOC
 | File | Changes |
 |------|---------|
 | `src/docs_server/config.py` | Add `CUSTOM_CSS` setting |
-| `src/docs_server/main.py` | Add `/custom.css` route (or dynamic); pass `custom_css_url` to template |
-| `src/docs_server/templates.py` | Add conditional `<link>` for custom CSS after main `<style>` |
+| `src/docs_server/main.py` | Add `/custom.css` route; pass `custom_css_url` to template |
+| `src/docs_server/templates.py` | CSS cleanup (new variables); conditional `<link>` for custom CSS |
 | `src/docs_server/helpers.py` | Optional: `get_custom_css_path()` |
-| `docs/configuration.md` | Document `CUSTOM_CSS` |
-| `examples/custom.css` | Example file |
+| `docs/configuration.md` | Document `CUSTOM_CSS`; brief custom CSS section |
+| `docs/features/customization.md` | **New** – full customization guide + CSS variables reference |
+| `docs/sidebar.md` | Add link to customization guide |
+| `examples/custom.css` | Basic overrides (accent, font) |
+| `examples/night-mode.css` | **New** – dark theme example |
+| `examples/README.md` | **New** – how to use examples |
 | `tests/test_*.py` | New tests |
 
 ---
@@ -203,3 +236,46 @@ Actually, re-reading the issue: "CUSTOM_CSS=custom.css or custom.css as default 
 2. Or use a reserved path like `/custom.css` always, and the env var only picks the file. Simpler.
 
 **Recommendation:** Use a **fixed URL** `/custom.css` for the custom stylesheet. The `CUSTOM_CSS` env var specifies which *file* in DOCS_ROOT to serve at that URL (e.g. `CUSTOM_CSS=theme.css` → serve `docs/theme.css` at `/custom.css`). This avoids route conflicts and keeps the template simple. Register the route before the catch-all `/{path:path}`.
+
+### G. CSS Variables (after Phase 0 cleanup)
+
+| Variable | Default | Purpose |
+|----------|---------|---------|
+| `--accent-primary` | `#f26a28` | Accent (links, active states, borders) |
+| `--accent-black` | `#000000` | Heading color |
+| `--color-primary` | `#3b82f6` | Primary UI (buttons, focus) |
+| `--color-primary-50` … `--color-primary-600` | (blue scale) | Primary variants |
+| `--color-neutral-50` | `#f9fafb` | Page background |
+| `--color-gray-50` … `--color-gray-900` | (gray scale) | Text, borders, surfaces |
+| `--color-bg-sidebar` | `white` (→ variable) | Sidebar background |
+| `--color-bg-topbar` | `white` | Topbar background |
+| `--color-bg-content` | `white` | Main content area |
+| `--color-bg-toc` | (sticky, inherits) | TOC sidebar |
+| `--color-bg-branding` | `white` | Branding footer |
+| `--color-btn-text` | `white` | Button text (e.g. search) |
+| `--color-search-highlight` | `#fefce8` | Search term highlight |
+
+### H. Night-mode example sketch
+
+```css
+/* examples/night-mode.css – Dark theme for servemd */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --accent-primary: #f97316;
+    --accent-black: #f9fafb;
+    --color-primary: #60a5fa;
+    --color-primary-50: #1e3a8a;
+    --color-primary-100: #1e40af;
+    /* ... invert gray scale ... */
+    --color-neutral-50: #111827;
+    --color-gray-50: #1f2937;
+    --color-gray-900: #f9fafb;
+    --color-bg-sidebar: #1f2937;
+    --color-bg-topbar: #1f2937;
+    --color-bg-content: #111827;
+    --color-search-highlight: #422006;
+  }
+}
+```
+
+Or use `:root` override without media query for always-dark. Document both approaches in the guide.

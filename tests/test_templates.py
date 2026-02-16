@@ -328,9 +328,7 @@ def test_create_html_template_branding_when_enabled():
     from docs_server.templates import create_html_template
 
     navigation = [{"type": "link", "title": "Home", "link": "index.html"}]
-    result = create_html_template(
-        "<p>Content</p>", navigation=navigation, show_branding=True
-    )
+    result = create_html_template("<p>Content</p>", navigation=navigation, show_branding=True)
 
     assert "Powered by servemd" in result
     assert "github.com/jberends/servemd" in result
@@ -352,9 +350,7 @@ def test_create_html_template_branding_link_attributes():
     from docs_server.templates import create_html_template
 
     navigation = [{"type": "link", "title": "Home", "link": "index.html"}]
-    result = create_html_template(
-        "<p>Content</p>", navigation=navigation, show_branding=True
-    )
+    result = create_html_template("<p>Content</p>", navigation=navigation, show_branding=True)
 
     assert 'target="_blank"' in result
     assert 'rel="noopener noreferrer"' in result
@@ -380,3 +376,70 @@ def test_create_html_template_search_custom_svg(tmp_path, monkeypatch):
     result = create_html_template(content, topbar_sections=topbar_sections, show_search=True)
 
     assert "/assets/search.svg" in result
+
+
+def test_create_html_template_page_actions_on_doc_page():
+    """Test that Copy page dropdown is present when page_actions provided and not search page."""
+    from docs_server.templates import create_html_template
+
+    content = "<h1>MCP</h1><p>Model Context Protocol.</p>"
+    page_actions = {
+        "raw_md_url": "https://docs.example.com/features/mcp.md",
+        "page_url": "https://docs.example.com/features/mcp.html",
+        "page_title": "MCP",
+        "chatgpt_url": "https://chatgpt.com/?prompt=Read+https%3A%2F%2Fdocs.example.com%2Ffeatures%2Fmcp.md+so+I+can+ask+questions+about+it.",
+        "claude_url": "https://claude.ai/new?q=Read%20https%3A%2F%2Fdocs.example.com%2Ffeatures%2Fmcp.md%20so%20I%20can%20ask%20questions%20about%20it.",
+        "mistral_url": "https://chat.mistral.ai/chat?q=Read+https%3A%2F%2Fdocs.example.com%2Ffeatures%2Fmcp.md+so+I+can+ask+questions+about+it.",
+    }
+    result = create_html_template(content, page_actions=page_actions, is_search_page=False)
+
+    assert "page-actions" in result
+    assert "Copy page" in result
+    assert "Copy Markdown link" in result
+    assert "View as Markdown" in result
+    assert "Open in Mistral Le Chat" in result
+    assert "Open in ChatGPT" in result
+    assert "Open in Claude" in result
+    assert "content-header" in result
+    assert "prompt=Read+" in result
+    assert "claude.ai/new?q=Read%20" in result
+    assert "https://docs.example.com/features/mcp.md" in result
+
+
+def test_create_html_template_page_actions_absent_on_search_page():
+    """Test that Copy page dropdown is absent when is_search_page=True."""
+    from docs_server.templates import create_html_template
+
+    content = "<div class='search-page'>Search results</div>"
+    page_actions = {
+        "raw_md_url": "https://docs.example.com/search.md",
+        "page_url": "https://docs.example.com/search.html",
+        "page_title": "Search",
+        "chatgpt_url": "https://chatgpt.com/?prompt=...",
+        "claude_url": "https://claude.ai/new?q=...",
+        "mistral_url": "https://chat.mistral.ai/chat?q=...",
+    }
+    result = create_html_template(content, page_actions=page_actions, is_search_page=True)
+
+    # Dropdown not rendered on search page - menu item text only in dropdown HTML
+    assert "Copy Markdown link" not in result
+
+
+def test_create_html_template_page_actions_without_h1():
+    """Test page_actions when content has no h1 - actions prepended."""
+    from docs_server.templates import create_html_template
+
+    content = "<p>No heading here.</p>"
+    page_actions = {
+        "raw_md_url": "https://docs.example.com/index.md",
+        "page_url": "https://docs.example.com/index.html",
+        "page_title": "Index",
+        "chatgpt_url": "https://chatgpt.com/?prompt=...",
+        "claude_url": "https://claude.ai/new?q=...",
+        "mistral_url": "https://chat.mistral.ai/chat?q=...",
+    }
+    result = create_html_template(content, page_actions=page_actions, is_search_page=False)
+
+    assert "page-actions" in result
+    assert "content-header-actions" in result
+    assert "<p>No heading here.</p>" in result

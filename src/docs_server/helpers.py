@@ -8,9 +8,28 @@ import os
 import re
 from pathlib import Path
 from typing import Any
-from urllib.parse import unquote
+from urllib.parse import quote, unquote
 
 from .config import settings
+
+
+def build_chatgpt_url(raw_md_url: str) -> str:
+    """Build ChatGPT URL with pre-filled prompt to read the raw markdown."""
+    encoded = quote(raw_md_url, safe="")
+    return f"https://chatgpt.com/?prompt=Read+{encoded}+so+I+can+ask+questions+about+it."
+
+
+def build_claude_url(raw_md_url: str) -> str:
+    """Build Claude URL with pre-filled prompt to read the raw markdown."""
+    encoded = quote(raw_md_url, safe="")
+    return f"https://claude.ai/new?q=Read%20{encoded}%20so%20I%20can%20ask%20questions%20about%20it."
+
+
+def build_mistral_url(raw_md_url: str) -> str:
+    """Build Mistral Le Chat URL with pre-filled prompt to read the raw markdown."""
+    encoded = quote(raw_md_url, safe="")
+    return f"https://chat.mistral.ai/chat?q=Read+{encoded}+so+I+can+ask+questions+about+it."
+
 
 logger = logging.getLogger(__name__)
 

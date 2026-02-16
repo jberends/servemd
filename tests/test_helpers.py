@@ -45,6 +45,42 @@ def test_highlight_search_terms_does_not_modify_html_tags():
     assert '<mark class="search-highlight">div</mark>' in result
 
 
+def test_build_chatgpt_url():
+    """Test build_chatgpt_url produces correct prompt format."""
+    from docs_server.helpers import build_chatgpt_url
+
+    raw_url = "https://docs.example.com/features/mcp.md"
+    result = build_chatgpt_url(raw_url)
+    assert result.startswith("https://chatgpt.com/?prompt=")
+    assert "Read+" in result
+    assert "so+I+can+ask+questions+about+it." in result
+    assert "https%3A%2F%2Fdocs.example.com%2Ffeatures%2Fmcp.md" in result
+
+
+def test_build_claude_url():
+    """Test build_claude_url produces correct query format."""
+    from docs_server.helpers import build_claude_url
+
+    raw_url = "https://docs.example.com/features/mcp.md"
+    result = build_claude_url(raw_url)
+    assert result.startswith("https://claude.ai/new?q=")
+    assert "Read%20" in result
+    assert "so%20I%20can%20ask%20questions%20about%20it." in result
+    assert "https%3A%2F%2Fdocs.example.com%2Ffeatures%2Fmcp.md" in result
+
+
+def test_build_mistral_url():
+    """Test build_mistral_url produces correct query format."""
+    from docs_server.helpers import build_mistral_url
+
+    raw_url = "https://docs.example.com/features/mcp.md"
+    result = build_mistral_url(raw_url)
+    assert result.startswith("https://chat.mistral.ai/chat?q=")
+    assert "Read+" in result
+    assert "so+I+can+ask+questions+about+it." in result
+    assert "https%3A%2F%2Fdocs.example.com%2Ffeatures%2Fmcp.md" in result
+
+
 def test_path_to_doc_url():
     """Test path_to_doc_url converts SearchResult.path to doc URL."""
     from docs_server.helpers import path_to_doc_url
