@@ -9,24 +9,37 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- **"Powered by servemd" branding** - Configurable attribution in sidebar footer:
+- :sparkles: **Custom CSS injection** - Override styles without forking templates:
+  - `CUSTOM_CSS` env var (default: `custom.css`); file served from DOCS_ROOT
+  - `GET /custom.css` endpoint with cache headers (no-cache in DEBUG, max-age=3600 otherwise)
+  - Link injected after built-in styles when file exists
+  - Examples: `examples/custom.css`, `examples/night-mode.css`
+- :sparkles: **Copy page dropdown** - Page actions next to document title (doc pages only):
+  - Copy Markdown link `[Title](url)` to clipboard
+  - View as Markdown (raw .md URL)
+  - Open in Mistral Le Chat, ChatGPT, Claude (pre-filled prompt to read the page)
+  - Nuxt UI-style dropdown with icons
+- :sparkles: **Code block copy button** - "Copy" button on syntax-highlighted code blocks; shows "Copied!" feedback
+- :sparkles: **"Powered by servemd" branding** - Configurable attribution in sidebar footer:
   - `SERVEMD_BRANDING_ENABLED` env var (default: `true`); set to `false` for white-label deployments
   - Sticky at bottom of sidebar with link to GitHub repo
   - Hidden on mobile when sidebar is collapsed
-- **In-page search** - Human-readable search experience when MCP is enabled:
+- :sparkles: **In-page search** - Human-readable search experience when MCP is enabled:
   - Search bar in topbar (configurable via `{{search}}` placeholder in `topbar.md`)
   - Search page at `/search?q=...` with live results as you type (debounced, min 3 characters)
   - Keyboard shortcut `/` to focus search bar; `Escape` to blur
   - Search terms highlighted in results (pale yellow marker)
   - Configurable icon, mode (`full`, `button`, `input`), and placeholder via `{{search:icon=...,mode=...,placeholder=...}}`
   - JSON endpoint (`/search?format=json`) for client-side live search
-- **`--clear-cache` CLI flag** - Clear the cache directory on startup before serving
-- **Hetzner bare server deployment** - Minimal deployment guide for Debian 13 VPS on Hetzner (`deployment/hetzner/`). Includes Docker Compose stack with servemd + Caddy reverse proxy, automatic HTTPS via Let's Encrypt, and hourly auto-updates via cron. See `deployment/hetzner/README.md`.
+- :wrench: **`--clear-cache` CLI flag** - Clear the cache directory on startup before serving
+- :rocket: **Hetzner bare server deployment** - Minimal deployment guide for Debian 13 VPS on Hetzner (`deployment/hetzner/`). Includes Docker Compose stack with servemd + Caddy reverse proxy, automatic HTTPS via Let's Encrypt, and hourly auto-updates via cron. See `deployment/hetzner/README.md`.
 
 ### Changed
 
-- **Reduced padding/margins** - Tighter spacing throughout: sidebar, main content, typography (h1, h2, h3, p, lists, code blocks, tables, blockquotes), and "Powered by" area. Topbar unchanged.
-- **Docker container security hardening** - Significant security improvements to the Docker image:
+- :art: **CSS variables for theming** - New variables for easier customization: `--color-bg-sidebar`, `--color-bg-topbar`, `--color-bg-content`, `--color-bg-toc`, `--color-bg-branding`, `--color-btn-text`, `--color-search-highlight`, `--color-code-bg`, `--color-code-border`. Replaced hardcoded `white` and `#fefce8` with variables.
+- :lipstick: **Code block styling** - Nuxt-like appearance: no per-line borders, smoother padding, distinct inline vs block code styles.
+- :art: **Reduced padding/margins** - Tighter spacing throughout: sidebar, main content, typography (h1, h2, h3, p, lists, code blocks, tables, blockquotes), and "Powered by" area. Topbar unchanged.
+- :lock: **Docker container security hardening** - Significant security improvements to the Docker image:
   - Switched base image from Debian Trixie (testing) to Debian Bookworm (stable), reducing CVEs by ~40–57%
   - Container now runs as non-root `servemd` user (UID 1000) instead of root
   - Applies security patches during build (`apt-get upgrade`)
@@ -36,8 +49,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-- **Log injection in MCP search** - Sanitized user-provided search query and exception messages before logging to prevent log injection (CodeQL High).
-- **Sidebar and topbar link resolution** - Links in `sidebar.md` and `topbar.md` are now normalized to root-relative paths (`/dir/page.html`) during parsing. Previously, relative links like `deployment/docker.html` were resolved by the browser relative to the current page URL, causing broken links (e.g. `/dir/dir/page.html`) when viewing pages in subdirectories. Content markdown links remain relative to the current file and work correctly.
+- :lock: **ReDoS in page actions template** - Replaced regex `(<h1[^>]*>)(.*?)(</h1>)` with string-based search to avoid polynomial backtracking on user-controlled content (CodeQL py/polynomial-redos).
+- :lock: **Log injection in MCP search** - Sanitized user-provided search query and exception messages before logging to prevent log injection (CodeQL High).
+- :bug: **Sidebar and topbar link resolution** - Links in `sidebar.md` and `topbar.md` are now normalized to root-relative paths (`/dir/page.html`) during parsing. Previously, relative links like `deployment/docker.html` were resolved by the browser relative to the current page URL, causing broken links (e.g. `/dir/dir/page.html`) when viewing pages in subdirectories. Content markdown links remain relative to the current file and work correctly.
 
 ## v0.2.0 (2026-02-02)
 

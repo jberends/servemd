@@ -39,6 +39,62 @@ def _iconify_img(prefix: str, icon: str, width: int = 18, height: int = 18, css_
     return f"<img src='{url}' alt='' class='{html.escape(css_class)}' width='{width}' height='{height}'>"
 
 
+def _render_page_actions_dropdown(
+    raw_md_url: str,
+    page_url: str,
+    page_title: str,
+    chatgpt_url: str,
+    claude_url: str,
+    mistral_url: str,
+) -> str:
+    """Build the Copy page dropdown HTML (Nuxt UI-style)."""
+    raw_safe = html.escape(raw_md_url, quote=True)
+    chatgpt_safe = html.escape(chatgpt_url, quote=True)
+    claude_safe = html.escape(claude_url, quote=True)
+    mistral_safe = html.escape(mistral_url, quote=True)
+    markdown_link = f"[{page_title}]({page_url})"
+    markdown_link_safe = html.escape(markdown_link, quote=True)
+
+    # Lucide-style icons: link, external-link, file-down (inline SVG)
+    link_svg = (
+        "<svg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' "
+        "fill='none' stroke='currentColor' stroke-width='2'><path d='M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71'/>"
+        "<path d='M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71'/></svg>"
+    )
+    external_svg = (
+        "<svg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' "
+        "fill='none' stroke='currentColor' stroke-width='2'><path d='M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6'/>"
+        "<polyline points='15 3 21 3 21 9'/><line x1='10' y1='14' x2='21' y2='3'/></svg>"
+    )
+    copy_svg = (
+        "<svg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' "
+        "fill='none' stroke='currentColor' stroke-width='2'><rect x='9' y='9' width='13' height='13' rx='2' ry='2'/>"
+        "<path d='M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1'/></svg>"
+    )
+    openai_icon = _iconify_img("simple-icons", "openai", 16, 16, "page-actions-item-icon")
+    anthropic_icon = _iconify_img("simple-icons", "anthropic", 16, 16, "page-actions-item-icon")
+    mistral_icon = _iconify_img("simple-icons", "mistralai", 16, 16, "page-actions-item-icon")
+
+    return f"""<div class="page-actions" data-markdown-link="{markdown_link_safe}">
+<details class="page-actions-dropdown">
+<summary class="page-actions-trigger" aria-haspopup="listbox" aria-expanded="false">
+<span class="page-actions-trigger-icon">{copy_svg}</span>
+<span class="page-actions-trigger-text">Copy page</span>
+<svg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' class="page-actions-chevron"><polyline points='6 9 12 15 18 9'/></svg>
+</summary>
+<div class="page-actions-menu">
+<a href="#" class="page-actions-item" data-action="copy-link" role="button">
+<span class="page-actions-item-icon">{link_svg}</span>Copy Markdown link</a>
+<a href="{raw_safe}" target="_blank" rel="noopener noreferrer" class="page-actions-item">
+<span class="page-actions-item-icon">{copy_svg}</span>View as Markdown<span class="page-actions-item-ext">{external_svg}</span></a>
+<a href="{mistral_safe}" target="_blank" rel="noopener noreferrer" class="page-actions-item"><span class="page-actions-item-icon">{mistral_icon}</span>Open in Mistral Le Chat<span class="page-actions-item-ext">{external_svg}</span></a>
+<a href="{chatgpt_safe}" target="_blank" rel="noopener noreferrer" class="page-actions-item"><span class="page-actions-item-icon">{openai_icon}</span>Open in ChatGPT<span class="page-actions-item-ext">{external_svg}</span></a>
+<a href="{claude_safe}" target="_blank" rel="noopener noreferrer" class="page-actions-item"><span class="page-actions-item-icon">{anthropic_icon}</span>Open in Claude<span class="page-actions-item-ext">{external_svg}</span></a>
+</div>
+</details>
+</div>"""
+
+
 def create_html_template(
     content: str,
     title: str = "Documentation",
@@ -50,6 +106,8 @@ def create_html_template(
     search_query: str = "",
     is_search_page: bool = False,
     show_branding: bool = True,
+    page_actions: dict[str, str] | None = None,
+    custom_css_url: str | None = None,
 ) -> str:
     """
     Create a complete HTML document with sidebar navigation and topbar.
@@ -353,7 +411,39 @@ def create_html_template(
         toc_html += "</nav>"
         toc_html += "</aside>"
 
+    # Inject page actions (Copy page dropdown) after first h1 on doc pages
+    final_content = content
+    if page_actions and not is_search_page:
+        actions_html = _render_page_actions_dropdown(
+            raw_md_url=page_actions["raw_md_url"],
+            page_url=page_actions["page_url"],
+            page_title=page_actions["page_title"],
+            chatgpt_url=page_actions["chatgpt_url"],
+            claude_url=page_actions["claude_url"],
+            mistral_url=page_actions["mistral_url"],
+        )
+        # Wrap first h1 + actions in content-header for flex layout
+        # Use string search instead of regex to avoid ReDoS on user-controlled content
+        h1_found = False
+        h1_start = content.find("<h1")
+        if h1_start != -1:
+            open_end = content.find(">", h1_start)
+            if open_end != -1:
+                close_start = content.find("</h1>", open_end + 1)
+                if close_start != -1:
+                    close_end = close_start + 6
+                    h1_block = content[h1_start:close_end]
+                    wrapped = f'<div class="content-header">{h1_block}{actions_html}</div>'
+                    final_content = content[:h1_start] + wrapped + content[close_end:]
+                    h1_found = True
+        if not h1_found:
+            # No h1 found, prepend actions at start
+            final_content = f'<div class="content-header-actions">{actions_html}</div>{content}'
+
     safe_title = html.escape(title or "", quote=True)
+    custom_css_link = (
+        f'<link rel="stylesheet" href="{html.escape(custom_css_url, quote=True)}">' if custom_css_url else ""
+    )
 
     return f"""<!DOCTYPE html>
 <html lang="nl">
@@ -387,6 +477,21 @@ def create_html_template(
             --color-gray-700: #374151;
             --color-gray-800: #1f2937;
             --color-gray-900: #111827;
+
+            /* Surface backgrounds (override for theming/dark mode) */
+            --color-bg-sidebar: #ffffff;
+            --color-bg-topbar: #ffffff;
+            --color-bg-content: #ffffff;
+            --color-bg-toc: transparent;
+            --color-bg-branding: #ffffff;
+
+            /* Button and highlight */
+            --color-btn-text: #ffffff;
+            --color-search-highlight: #fefce8;
+
+            /* Code blocks */
+            --color-code-bg: #f9fafb;
+            --color-code-border: #e5e7eb;
         }}
 
         * {{
@@ -408,7 +513,7 @@ def create_html_template(
         /* Sidebar Styles */
         .sidebar {{
             width: 280px;
-            background: white;
+            background: var(--color-bg-sidebar);
             border-right: 1px solid var(--color-gray-200);
             padding: 0.75rem;
             position: fixed;
@@ -535,7 +640,7 @@ def create_html_template(
             left: 0;
             right: 0;
             height: 60px;
-            background: white;
+            background: var(--color-bg-topbar);
             border-bottom: 1px solid var(--color-gray-200);
             z-index: 100;
             display: flex;
@@ -643,7 +748,7 @@ def create_html_template(
         .content {{
             flex: 1;
             max-width: none;
-            background: white;
+            background: var(--color-bg-content);
             border-radius: 0.75rem;
             padding: 1.25rem;
             box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
@@ -653,6 +758,7 @@ def create_html_template(
         .toc-sidebar {{
             width: 240px;
             flex-shrink: 0;
+            background: var(--color-bg-toc);
             position: sticky;
             top: calc(60px + 1.25rem);
             height: fit-content;
@@ -754,24 +860,85 @@ def create_html_template(
 
         p {{ margin-bottom: 0.75rem; }}
 
-        /* Code blocks */
-        .highlight, pre, code {{
-            background: var(--color-gray-100);
-            border: 1px solid var(--color-gray-200);
+        /* Code blocks – Nuxt-like smooth appearance, no per-line borders */
+        .highlight {{
+            position: relative;
+            margin: 0.75rem 0;
             border-radius: 0.5rem;
+            overflow: hidden;
+            background: var(--color-code-bg);
+            border: 1px solid var(--color-code-border);
+        }}
+
+        .highlight pre {{
+            margin: 0;
+            padding: 1rem 1.25rem;
+            overflow-x: auto;
+            font-size: 0.875rem;
+            line-height: 1.6;
+            font-family: ui-monospace, SFMono-Regular, Monaco, Consolas, monospace;
+            background: transparent;
+            border: none;
+        }}
+
+        .highlight pre code {{
+            background: transparent;
+            border: none;
+            padding: 0;
+            font-size: inherit;
+        }}
+
+        /* Inline code (not in blocks) */
+        :not(pre) > code {{
+            background: var(--color-gray-100);
+            border: 1px solid var(--color-code-border);
+            border-radius: 0.375rem;
+            padding: 0.125rem 0.375rem;
+            font-size: 0.875em;
             font-family: ui-monospace, SFMono-Regular, Monaco, Consolas, monospace;
         }}
 
-        .highlight, pre {{
-            padding: 0.75rem;
+        /* Plain pre/code without .highlight (fallback) */
+        pre:not(.highlight pre) {{
             margin: 0.75rem 0;
+            padding: 1rem 1.25rem;
             overflow-x: auto;
             font-size: 0.875rem;
+            background: var(--color-code-bg);
+            border: 1px solid var(--color-code-border);
+            border-radius: 0.5rem;
         }}
 
-        code {{
-            padding: 0.125rem 0.25rem;
-            font-size: 0.875rem;
+        pre:not(.highlight pre) code {{
+            background: transparent;
+            border: none;
+            padding: 0;
+        }}
+
+        /* Copy button for code blocks */
+        .code-copy-btn {{
+            position: absolute;
+            top: 0.5rem;
+            right: 0.5rem;
+            padding: 0.375rem 0.5rem;
+            font-size: 0.75rem;
+            font-weight: 500;
+            color: var(--color-gray-500);
+            background: var(--color-gray-100);
+            border: 1px solid var(--color-code-border);
+            border-radius: 0.375rem;
+            cursor: pointer;
+            opacity: 0.8;
+            transition: opacity 0.15s, color 0.15s;
+        }}
+
+        .code-copy-btn:hover {{
+            opacity: 1;
+            color: var(--color-gray-700);
+        }}
+
+        .code-copy-btn.copied {{
+            color: var(--color-primary-600);
         }}
 
         /* Tables */
@@ -980,7 +1147,7 @@ def create_html_template(
         }}
 
         .search-highlight {{
-            background-color: #fefce8;
+            background-color: var(--color-search-highlight);
             padding: 0 0.1em;
             border-radius: 2px;
         }}
@@ -1005,7 +1172,7 @@ def create_html_template(
             padding: 0.5rem 1rem;
             font-size: 0.875rem;
             font-weight: 500;
-            color: white;
+            color: var(--color-btn-text);
             background: var(--color-primary-600);
             border: none;
             border-radius: 0.375rem;
@@ -1119,7 +1286,7 @@ def create_html_template(
             padding: 0.5rem 0 0;
             margin-top: auto;
             border-top: 1px solid var(--color-gray-200);
-            background: white;
+            background: var(--color-bg-branding);
         }}
 
         .servemd-branding a {{
@@ -1131,18 +1298,187 @@ def create_html_template(
             color: var(--color-gray-700);
             text-decoration: underline;
         }}
+
+        /* Content header: title + Copy page dropdown (Nuxt UI-style) */
+        .content-header {{
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 1rem;
+            margin-bottom: 1.25rem;
+            flex-wrap: wrap;
+        }}
+
+        .content-header h1 {{
+            margin-bottom: 0;
+            flex: 1;
+            min-width: 0;
+        }}
+
+        .content-header-actions {{
+            margin-bottom: 1rem;
+        }}
+
+        .page-actions {{
+            flex-shrink: 0;
+        }}
+
+        .page-actions-dropdown {{
+            position: relative;
+            display: inline-block;
+        }}
+
+        .page-actions-trigger {{
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.375rem 0.75rem;
+            font-size: 0.875rem;
+            font-weight: 500;
+            color: var(--color-gray-600);
+            background: var(--color-gray-50);
+            border: 1px solid var(--color-gray-200);
+            border-radius: 0.375rem;
+            cursor: pointer;
+            list-style: none;
+            transition: all 0.15s;
+        }}
+
+        .page-actions-trigger::-webkit-details-marker {{
+            display: none;
+        }}
+
+        .page-actions-trigger:hover {{
+            background: var(--color-gray-100);
+            color: var(--color-gray-900);
+            border-color: var(--color-gray-300);
+        }}
+
+        .page-actions-trigger-icon {{
+            display: flex;
+            align-items: center;
+        }}
+
+        .page-actions-chevron {{
+            flex-shrink: 0;
+            opacity: 0.7;
+            transition: transform 0.2s;
+        }}
+
+        .page-actions-dropdown[open] .page-actions-chevron {{
+            transform: rotate(180deg);
+        }}
+
+        .page-actions-menu {{
+            position: absolute;
+            top: 100%;
+            right: 0;
+            margin-top: 0.25rem;
+            min-width: 260px;
+            background: var(--color-bg-content);
+            border: 1px solid var(--color-gray-200);
+            border-radius: 0.5rem;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
+            z-index: 50;
+            padding: 0.25rem;
+        }}
+
+        .page-actions-item {{
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            min-height: 2.25rem;
+            padding: 0.5rem 0.75rem;
+            font-size: 0.875rem;
+            color: var(--color-gray-700);
+            text-decoration: none;
+            border-radius: 0.375rem;
+            transition: background 0.15s;
+            white-space: nowrap;
+        }}
+
+        .page-actions-item:hover {{
+            background: var(--color-gray-50);
+            color: var(--color-gray-900);
+        }}
+
+        .page-actions-item[data-action="copy-link"] {{
+            cursor: pointer;
+        }}
+
+        .page-actions-item-icon {{
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            width: 16px;
+            height: 16px;
+        }}
+
+        .page-actions-item-icon img {{
+            display: block;
+            object-fit: contain;
+        }}
+
+        .page-actions-item-ext {{
+            margin-left: auto;
+            opacity: 0.6;
+        }}
     </style>
+    {custom_css_link}
 </head>
 <body>
     {sidebar_html}
     {topbar_html}
     <div class="main-content">
         <div class="content">
-            {content}
+            {final_content}
         </div>
         {toc_html}
     </div>
     {search_script}
     {search_page_script}
+    <script>
+    (function() {{
+        var copyLinkBtn = document.querySelector('.page-actions-item[data-action="copy-link"]');
+        if (copyLinkBtn) {{
+            copyLinkBtn.addEventListener('click', function(e) {{
+                e.preventDefault();
+                var wrap = document.querySelector('.page-actions[data-markdown-link]');
+                if (!wrap) return;
+                var text = wrap.getAttribute('data-markdown-link');
+                if (!text) return;
+                navigator.clipboard.writeText(text).then(function() {{
+                    var orig = copyLinkBtn.innerHTML;
+                    copyLinkBtn.innerHTML = '<span class="page-actions-item-icon">✓</span>Copied!';
+                    setTimeout(function() {{ copyLinkBtn.innerHTML = orig; }}, 1500);
+                }});
+            }});
+        }}
+
+        document.querySelectorAll('.highlight').forEach(function(block) {{
+            var pre = block.querySelector('pre');
+            if (!pre) return;
+            var btn = document.createElement('button');
+            btn.type = 'button';
+            btn.className = 'code-copy-btn';
+            btn.textContent = 'Copy';
+            btn.setAttribute('aria-label', 'Copy code');
+            btn.onclick = function() {{
+                var code = pre.querySelector('code') || pre;
+                var text = (code.innerText || code.textContent || '').trim();
+                navigator.clipboard.writeText(text).then(function() {{
+                    btn.textContent = 'Copied!';
+                    btn.classList.add('copied');
+                    setTimeout(function() {{
+                        btn.textContent = 'Copy';
+                        btn.classList.remove('copied');
+                    }}, 2000);
+                }});
+            }};
+            block.appendChild(btn);
+        }});
+    }})();
+    </script>
 </body>
 </html>"""

@@ -168,6 +168,28 @@ When `{{search}}` is present, the search bar renders at that position. When abse
 
 ---
 
+## Copy Page Dropdown
+
+On every documentation page, a **Copy page** dropdown appears to the right of the page title (Nuxt UI-style). It provides:
+
+| Option | Description |
+|--------|--------------|
+| **Copy Markdown link** | Copies `[Page Title](page_url)` to the clipboard |
+| **View as Markdown** | Opens the raw `.md` file in a new tab |
+| **Open in Mistral Le Chat** | Opens Mistral Le Chat with a pre-filled prompt to read the page |
+| **Open in ChatGPT** | Opens ChatGPT with a pre-filled prompt to read the page |
+| **Open in Claude** | Opens Claude with a pre-filled prompt to read the page |
+
+The AI links use the raw markdown URL so assistants can fetch and read the page content. For self-hosted deployments, set `BASE_URL` in your environment so these links use your public URL:
+
+```bash
+BASE_URL=https://docs.example.com uv run python -m docs_server
+```
+
+Without `BASE_URL`, the server uses the request URL (e.g. `http://localhost:8080`), which works locally but may not be reachable by AI assistants when deployed.
+
+---
+
 ## Active State Highlighting
 
 Both sidebar and topbar automatically highlight the current page.

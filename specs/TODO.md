@@ -8,9 +8,11 @@
 
 ## Active Tasks
 
-### None
+### Copy Page Dropdown with AI Links (Nuxt UI-style)
 
-All planned features have been implemented ✅
+- [ ] Add "Copy page" dropdown to the right of the page title (see [TODO_9_copy_page_ai_links.md](TODO_9_copy_page_ai_links.md))
+- [ ] Options: Copy Markdown link, View as Markdown, Open in ChatGPT, Open in Claude
+- [ ] URL formats: ChatGPT `?prompt=Read+{raw_md_url}+so+I+can+ask+questions+about+it.`; Claude `?q=Read%20{raw_md_url}%20so%20I%20can%20ask%20questions%20about%20it.`
 
 ---
 

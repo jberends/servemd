@@ -3,8 +3,6 @@ Unit tests for llms_service module.
 Tests llms.txt generation and URL transformation.
 """
 
-from pathlib import Path
-
 import pytest
 
 

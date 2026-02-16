@@ -12,8 +12,9 @@ Configure the documentation server with environment variables and file structure
 | `CACHE_ROOT` | `./__cache__` or `/app/cache` | Cache directory for rendered HTML |
 | `PORT` | `8080` | HTTP server port |
 | `DEBUG` | `false` | Enable debug mode with auto-reload |
-| `BASE_URL` | Auto-detected | Base URL for absolute links in llms.txt |
+| `BASE_URL` | Auto-detected | Base URL for absolute links in llms.txt and Copy page AI links (ChatGPT, Claude) |
 | `SERVEMD_BRANDING_ENABLED` | `true` | Show "Powered by servemd" footer. Set to `false` to disable for white-label or self-hosted deployments |
+| `CUSTOM_CSS` | `custom.css` | Filename of custom CSS in DOCS_ROOT. Loaded on every page after default styles. See [Customization](features/customization.html) |
 
 ### MCP Settings
 
@@ -65,6 +66,10 @@ docker run \
 SERVEMD_BRANDING_ENABLED=false uv run python -m docs_server
 ```
 The "Powered by servemd" footer is shown by default. Disable it with `SERVEMD_BRANDING_ENABLED=false` for white-label or self-hosted deployments where you prefer no attribution.
+
+### Custom CSS
+
+Place a CSS file (e.g. `custom.css`) in `DOCS_ROOT`. It is served at `/custom.css` and loaded on every page **after** the default styles, so your rules override defaults. Use `CUSTOM_CSS=theme.css` to serve a different filename. See [Customization](features/customization.html) for CSS variables and examples.
 
 ---
 

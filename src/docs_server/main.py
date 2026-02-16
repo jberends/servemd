@@ -18,8 +18,12 @@ from slowapi.util import get_remote_address
 from .caching import get_cached_html, get_cached_llms, save_cached_html, save_cached_llms
 from .config import settings
 from .helpers import (
+    build_chatgpt_url,
+    build_claude_url,
+    build_mistral_url,
     extract_table_of_contents,
     format_search_results_human,
+    get_custom_css_path,
     get_file_path,
     parse_sidebar_navigation,
     parse_topbar_links,
@@ -461,8 +465,27 @@ async def _search_html_response(query: str) -> HTMLResponse | RedirectResponse:
         search_query=query,
         is_search_page=True,
         show_branding=settings.SERVEMD_BRANDING_ENABLED,
+        custom_css_url="/custom.css" if get_custom_css_path() else None,
     )
     return HTMLResponse(content=full_html)
+
+
+@app.get("/custom.css")
+async def serve_custom_css():
+    """
+    Serve custom CSS file from DOCS_ROOT.
+    Filename is from CUSTOM_CSS env var (default: custom.css).
+    Returns 404 if file does not exist.
+    """
+    css_path = get_custom_css_path()
+    if not css_path:
+        raise HTTPException(status_code=404, detail="Custom CSS file not found")
+    cache_control = "no-cache" if settings.DEBUG else "max-age=3600"
+    return FileResponse(
+        path=str(css_path),
+        media_type="text/css",
+        headers={"Cache-Control": cache_control},
+    )
 
 
 @app.get("/{path:path}")
@@ -504,8 +527,24 @@ async def serve_content(path: str, request: Request):
 
             # Create full HTML document with styling and navigation
             title = f"{file_path.stem.replace('_', ' ').title()} - Documentation"
+            page_title = file_path.stem.replace("_", " ").title()
             # Root-relative path for active state (matches sidebar/topbar link format)
             current_path = f"/{path}" if path and not path.startswith("/") else path
+            current_doc_path = path[:-5] if path.endswith(".html") else path  # e.g. features/mcp
+
+            # Build page actions (Copy page dropdown with AI links)
+            base_url = settings.BASE_URL or str(request.base_url).rstrip("/")
+            raw_md_url = f"{base_url}/{current_doc_path}.md"
+            page_url = f"{base_url}{current_path}" if current_path.startswith("/") else f"{base_url}/{current_path}"
+            page_actions = {
+                "raw_md_url": raw_md_url,
+                "page_url": page_url,
+                "page_title": page_title,
+                "chatgpt_url": build_chatgpt_url(raw_md_url),
+                "claude_url": build_claude_url(raw_md_url),
+                "mistral_url": build_mistral_url(raw_md_url),
+            }
+
             full_html = create_html_template(
                 html_content,
                 title,
@@ -515,6 +554,8 @@ async def serve_content(path: str, request: Request):
                 toc_items,
                 show_search=settings.MCP_ENABLED,
                 show_branding=settings.SERVEMD_BRANDING_ENABLED,
+                page_actions=page_actions,
+                custom_css_url="/custom.css" if get_custom_css_path() else None,
             )
 
             # Cache the rendered HTML
