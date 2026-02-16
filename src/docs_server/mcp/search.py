@@ -126,8 +126,12 @@ def search_docs(query: str, limit: int | None = None) -> list[SearchResult]:
         return results
 
     except Exception as e:
+        safe_query = _sanitize_for_log(query)
+        safe_error = _sanitize_for_log(str(e))
         logger.error(
-            f"Search error for query '{_sanitize_for_log(query)}': {_sanitize_for_log(str(e))}",
+            "Search error for query '%s': %s",
+            safe_query,
+            safe_error,
             exc_info=True,
         )
         raise RuntimeError(f"Search failed: {e}") from e
