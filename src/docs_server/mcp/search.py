@@ -205,9 +205,6 @@ def _clean_snippet(snippet: str) -> str:
     Returns:
         Cleaned snippet string
     """
-    # Replace multiple whitespace with single space
-    import re
-
     cleaned = re.sub(r"\s+", " ", snippet)
     # Strip leading/trailing whitespace
     cleaned = cleaned.strip()
