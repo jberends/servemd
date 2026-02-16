@@ -15,6 +15,15 @@ from .config import settings
 logger = logging.getLogger(__name__)
 
 
+def path_to_doc_url(path: str) -> str:
+    """
+    Convert SearchResult.path (e.g. features/mcp.md) to doc URL (/features/mcp.html).
+    """
+    if path.endswith(".md"):
+        path = path[:-3] + ".html"
+    return "/" + path.lstrip("/")
+
+
 def is_safe_path(path: str, base_path: Path) -> bool:
     """
     Validate that the requested path is within the allowed directory boundaries.

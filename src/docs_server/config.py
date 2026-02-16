@@ -196,6 +196,19 @@ class Settings:
             logger.warning(f"Could not create directories: {e}")
             # In development, we might not have permissions to create /app directories
 
+    def clear_cache(self) -> None:
+        """
+        Remove all contents of the cache directory.
+        Used when --clear-cache is passed at startup.
+        """
+        try:
+            if self.CACHE_ROOT.exists():
+                shutil.rmtree(self.CACHE_ROOT)
+                logger.info("🗑️ Cache cleared")
+            self.CACHE_ROOT.mkdir(parents=True, exist_ok=True)
+        except (OSError, PermissionError) as e:
+            logger.warning(f"Could not clear cache: {e}")
+
 
 # Create singleton instance
 settings = Settings()

@@ -201,3 +201,44 @@ def test_create_html_template_external_links():
     # External links should have target="_blank" and rel attributes
     assert 'target="_blank"' in result
     assert 'rel="noopener noreferrer"' in result
+
+
+def test_create_html_template_with_search_bar():
+    """Test that search bar is rendered when show_search is True"""
+    from docs_server.templates import create_html_template
+
+    content = "<p>Content</p>"
+    result = create_html_template(content, show_search=True)
+
+    assert "/search" in result and "action=" in result
+    assert 'name="q"' in result
+    assert "Search..." in result
+    assert "topbar-search-form" in result
+    assert "topbar-search-input" in result
+    assert "search-bar-wrapper" in result
+
+
+def test_create_html_template_search_bar_prefill():
+    """Test that search query is pre-filled when provided"""
+    from docs_server.templates import create_html_template
+
+    content = "<p>Content</p>"
+    result = create_html_template(content, show_search=True, search_query="mcp")
+
+    assert 'value="mcp"' in result
+
+
+def test_create_html_template_search_bar_with_topbar():
+    """Test that search bar appears in topbar right with other items"""
+    from docs_server.templates import create_html_template
+
+    content = "<p>Content</p>"
+    topbar_sections = {
+        "left": [{"type": "logo_link", "title": "Docs", "link": "index.html"}],
+        "middle": [],
+        "right": [{"type": "link", "title": "GitHub", "link": "https://github.com"}],
+    }
+    result = create_html_template(content, topbar_sections=topbar_sections, show_search=True)
+
+    assert "/search" in result and "action=" in result
+    assert "GitHub" in result

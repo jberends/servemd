@@ -17,7 +17,13 @@ from slowapi.util import get_remote_address
 
 from .caching import get_cached_html, get_cached_llms, save_cached_html, save_cached_llms
 from .config import settings
-from .helpers import extract_table_of_contents, get_file_path, parse_sidebar_navigation, parse_topbar_links
+from .helpers import (
+    extract_table_of_contents,
+    get_file_path,
+    parse_sidebar_navigation,
+    parse_topbar_links,
+    path_to_doc_url,
+)
 from .llms_service import generate_llms_txt_content
 from .markdown_service import render_markdown_to_html
 from .templates import create_html_template
@@ -293,6 +299,128 @@ async def root():
     return RedirectResponse(url="/index.html", status_code=302)
 
 
+@app.get("/search")
+async def search_page(q: str = ""):
+    """
+    Search documentation. Displays results in main content area with sidebar and topbar.
+    Empty or whitespace-only query redirects to home.
+    """
+    # Empty or whitespace-only → redirect to home
+    if not q or not q.strip():
+        return RedirectResponse(url="/index.html", status_code=302)
+
+    query = q.strip()
+
+    # Parse navigation for layout
+    navigation = parse_sidebar_navigation()
+    topbar_sections = parse_topbar_links()
+
+    # Check MCP enabled and index availability
+    if not settings.MCP_ENABLED:
+        content_html = "<p>Search will be available once the index is built.</p>"
+        full_html = create_html_template(
+            content_html,
+            title="Search - Documentation",
+            current_path="/search",
+            navigation=navigation,
+            topbar_sections=topbar_sections,
+            toc_items=[],
+            show_search=settings.MCP_ENABLED,
+        )
+        return HTMLResponse(content=full_html)
+
+    try:
+        from .mcp import get_index_manager
+
+        manager = get_index_manager()
+        if not manager.is_initialized:
+            content_html = "<p>Search will be available once the index is built.</p>"
+            full_html = create_html_template(
+                content_html,
+                title="Search - Documentation",
+                current_path="/search",
+                navigation=navigation,
+                topbar_sections=topbar_sections,
+                toc_items=[],
+                show_search=settings.MCP_ENABLED,
+                search_query=query,
+            )
+            return HTMLResponse(content=full_html)
+    except Exception as e:
+        logger.warning(f"Search index check failed: {e}")
+        content_html = "<p>Search will be available once the index is built.</p>"
+        full_html = create_html_template(
+            content_html,
+            title="Search - Documentation",
+            current_path="/search",
+            navigation=navigation,
+            topbar_sections=topbar_sections,
+            toc_items=[],
+            show_search=settings.MCP_ENABLED,
+            search_query=query,
+        )
+        return HTMLResponse(content=full_html)
+
+    # Execute search
+    try:
+        from .mcp import search_docs
+        from .mcp.search import format_search_results
+
+        results = search_docs(query=query)
+    except RuntimeError as e:
+        logger.warning(f"Search failed: {e}")
+        content_html = "<p>Search will be available once the index is built.</p>"
+        full_html = create_html_template(
+            content_html,
+            title="Search - Documentation",
+            current_path="/search",
+            navigation=navigation,
+            topbar_sections=topbar_sections,
+            toc_items=[],
+            show_search=settings.MCP_ENABLED,
+            search_query=query,
+        )
+        return HTMLResponse(content=full_html)
+
+    # No results
+    if not results:
+        content_html = f"<p>No results found for '{query}'</p>"
+        full_html = create_html_template(
+            content_html,
+            title="Search - Documentation",
+            current_path="/search",
+            navigation=navigation,
+            topbar_sections=topbar_sections,
+            toc_items=[],
+            show_search=settings.MCP_ENABLED,
+            search_query=query,
+        )
+        return HTMLResponse(content=full_html)
+
+    # Convert format_search_results output to HTML with doc links
+    formatted = format_search_results(results)
+
+    # Replace `path` with markdown links so paths become clickable
+    def replace_path_link(match: re.Match) -> str:
+        path = match.group(1)
+        url = path_to_doc_url(path)
+        return f"[{path}]({url})"
+
+    formatted_with_links = re.sub(r"`([^`]+\.md)`", replace_path_link, formatted)
+    content_html = await render_markdown_to_html(formatted_with_links, settings.DOCS_ROOT / "index.md")
+    full_html = create_html_template(
+        content_html,
+        title=f"Search: {query} - Documentation",
+        current_path="/search",
+        navigation=navigation,
+        topbar_sections=topbar_sections,
+        toc_items=[],
+        show_search=settings.MCP_ENABLED,
+        search_query=query,
+    )
+    return HTMLResponse(content=full_html)
+
+
 @app.get("/{path:path}")
 async def serve_content(path: str, request: Request):
     """
@@ -334,7 +462,15 @@ async def serve_content(path: str, request: Request):
             title = f"{file_path.stem.replace('_', ' ').title()} - Documentation"
             # Root-relative path for active state (matches sidebar/topbar link format)
             current_path = f"/{path}" if path and not path.startswith("/") else path
-            full_html = create_html_template(html_content, title, current_path, navigation, topbar_sections, toc_items)
+            full_html = create_html_template(
+                html_content,
+                title,
+                current_path,
+                navigation,
+                topbar_sections,
+                toc_items,
+                show_search=settings.MCP_ENABLED,
+            )
 
             # Cache the rendered HTML
             await save_cached_html(file_path, full_html)
@@ -390,7 +526,21 @@ async def serve_content(path: str, request: Request):
 
 def main():
     """Main entry point for the application"""
+    import argparse
+    import sys
+
     import uvicorn
+
+    parser = argparse.ArgumentParser(description="ServeMD Documentation Server")
+    parser.add_argument(
+        "--clear-cache",
+        action="store_true",
+        help="Clear the cache directory on startup before serving",
+    )
+    args, _ = parser.parse_known_args(sys.argv[1:])
+
+    if args.clear_cache:
+        settings.clear_cache()
 
     logger.info("🚀 Starting ServeMD Documentation Server...")
     logger.info(f"🌐 Server will be available at: http://localhost:{settings.PORT}")

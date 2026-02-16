@@ -300,6 +300,9 @@ uv run ruff format src/ tests/
 docker build -t servemd .
 docker run -p 8080:8080 servemd
 
+# Clear cache on startup
+uv run python -m docs_server --clear-cache
+
 # Help
 uv run python -m docs_server --help
 ```

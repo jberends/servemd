@@ -120,3 +120,57 @@ def test_debug_string_parsing():
         os.environ["DEBUG"] = env_value
         settings = Settings()
         assert settings.DEBUG == expected, f"Failed for DEBUG={env_value}"
+
+
+def test_clear_cache_removes_contents(tmp_path, monkeypatch):
+    """Test that clear_cache removes all cache contents and recreates the directory"""
+    from docs_server.config import Settings
+
+    monkeypatch.setenv("DOCS_ROOT", str(tmp_path / "docs"))
+    monkeypatch.setenv("CACHE_ROOT", str(tmp_path / "cache"))
+    (tmp_path / "docs").mkdir()
+    (tmp_path / "cache").mkdir()
+    (tmp_path / "cache" / "index.html").write_text("cached")
+    (tmp_path / "cache" / "subdir").mkdir()
+    (tmp_path / "cache" / "subdir" / "file.txt").write_text("data")
+
+    settings = Settings()
+    settings.clear_cache()
+
+    assert (tmp_path / "cache").exists()
+    assert not (tmp_path / "cache" / "index.html").exists()
+    assert not (tmp_path / "cache" / "subdir").exists()
+
+
+def test_clear_cache_creates_directory_if_missing(tmp_path, monkeypatch):
+    """Test that clear_cache creates the cache directory when it does not exist"""
+    import shutil
+
+    from docs_server.config import Settings
+
+    monkeypatch.setenv("DOCS_ROOT", str(tmp_path / "docs"))
+    monkeypatch.setenv("CACHE_ROOT", str(tmp_path / "cache"))
+    (tmp_path / "docs").mkdir()
+    settings = Settings()
+    shutil.rmtree(tmp_path / "cache")  # remove dir created by _init_directories
+
+    settings.clear_cache()
+
+    assert (tmp_path / "cache").exists()
+    assert (tmp_path / "cache").is_dir()
+
+
+def test_clear_cache_idempotent(tmp_path, monkeypatch):
+    """Test that clear_cache can be called multiple times safely"""
+    from docs_server.config import Settings
+
+    monkeypatch.setenv("DOCS_ROOT", str(tmp_path / "docs"))
+    monkeypatch.setenv("CACHE_ROOT", str(tmp_path / "cache"))
+    (tmp_path / "docs").mkdir()
+    (tmp_path / "cache").mkdir()
+
+    settings = Settings()
+    settings.clear_cache()
+    settings.clear_cache()
+
+    assert (tmp_path / "cache").exists()

@@ -3,6 +3,7 @@ HTML template generation for ServeMD Documentation Server.
 Contains the main HTML template with embedded CSS.
 """
 
+import html
 from typing import Any
 
 
@@ -13,6 +14,8 @@ def create_html_template(
     navigation: list[dict[str, Any]] = None,
     topbar_sections: dict[str, list[dict[str, str]]] = None,
     toc_items: list[dict[str, str]] = None,
+    show_search: bool = False,
+    search_query: str = "",
 ) -> str:
     """
     Create a complete HTML document with sidebar navigation and topbar.
@@ -68,7 +71,7 @@ def create_html_template(
 
     # Generate topbar HTML with structured sections
     topbar_html = ""
-    if any(topbar_sections.values()):  # If any section has items
+    if any(topbar_sections.values()) or show_search:  # If any section has items or search bar
         topbar_html = "<div class='topbar'>"
 
         # Left section
@@ -118,8 +121,8 @@ def create_html_template(
                     )
             topbar_html += "</div>"
 
-        # Right section
-        if topbar_sections["right"]:
+        # Right section (search bar at far right when show_search)
+        if topbar_sections["right"] or show_search:
             topbar_html += "<div class='topbar-right'>"
             for item in topbar_sections["right"]:
                 if item["type"] == "text":
@@ -132,9 +135,91 @@ def create_html_template(
                     topbar_html += (
                         f"<a href='{item['link']}' class='topbar-link{active_class}'{target_attr}>{item['title']}</a>"
                     )
+            if show_search:
+                search_value = html.escape(search_query, quote=True)
+                lucide_search_svg = (
+                    "<svg xmlns='http://www.w3.org/2000/svg' width='18' height='18' viewBox='0 0 24 24' "
+                    "fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'>"
+                    "<circle cx='11' cy='11' r='8'/><path d='m21 21-4.35-4.35'/></svg>"
+                )
+                topbar_html += "<div class='search-bar-wrapper'>"
+                topbar_html += (
+                    "<button type='button' class='search-toggle' aria-label='Open search' title='Search (/)'>"
+                )
+                topbar_html += lucide_search_svg
+                topbar_html += "</button>"
+                open_class = " is-open" if search_query else ""
+                topbar_html += (
+                    f"<form action='/search' method='GET' class='search-form{open_class}' id='topbar-search-form'>"
+                )
+                topbar_html += "<span class='search-input-wrap'>"
+                topbar_html += f'<input type="text" name="q" placeholder="Search..." value="{search_value}" class="search-input" id="topbar-search-input" autocomplete="off" role="searchbox">'
+                topbar_html += "<span class='search-input-trailing'>" + lucide_search_svg + "</span>"
+                topbar_html += "</span>"
+                topbar_html += "</form>"
+                topbar_html += "</div>"
             topbar_html += "</div>"
 
         topbar_html += "</div>"
+
+    # Search bar script (only when show_search)
+    search_script = ""
+    if show_search:
+        search_script = """<script>
+(function() {
+    var form = document.getElementById('topbar-search-form');
+    var input = document.getElementById('topbar-search-input');
+    var toggle = document.querySelector('.search-toggle');
+    if (!form || !input) return;
+
+    if (form.classList.contains('is-open') && toggle) toggle.style.display = 'none';
+
+    form.addEventListener('submit', function(e) {
+        var q = (input.value || '').trim();
+        if (!q) {
+            e.preventDefault();
+            return false;
+        }
+        input.value = q;
+    });
+
+    function setExpanded(open) {
+        if (open) {
+            form.classList.add('is-open');
+            if (toggle) toggle.style.display = 'none';
+            setTimeout(function() { input.focus(); }, 50);
+        } else {
+            form.classList.remove('is-open');
+            if (toggle) toggle.style.display = '';
+            input.blur();
+        }
+    }
+
+    if (toggle) {
+        toggle.addEventListener('click', function() { setExpanded(true); });
+    }
+
+    document.addEventListener('click', function(e) {
+        var wrapper = document.querySelector('.search-bar-wrapper');
+        if (form.classList.contains('is-open') && wrapper && !wrapper.contains(e.target)) {
+            setExpanded(false);
+        }
+    });
+
+    document.addEventListener('keydown', function(e) {
+        if (e.key === '/') {
+            var tag = document.activeElement && document.activeElement.tagName.toLowerCase();
+            if (tag === 'input' || tag === 'textarea') return;
+            e.preventDefault();
+            setExpanded(true);
+        } else if (e.key === 'Escape') {
+            if (document.activeElement === input || form.classList.contains('is-open')) {
+                setExpanded(false);
+            }
+        }
+    });
+})();
+</script>"""
 
     # Generate TOC sidebar HTML
     toc_html = ""
@@ -681,6 +766,138 @@ def create_html_template(
                 padding: 1.5rem;
             }}
         }}
+
+        /* Search bar: icon-only default, expands to input with trailing icon (i-lucide-search) */
+        .search-bar-wrapper {{
+            display: flex;
+            align-items: center;
+            flex-shrink: 0;
+        }}
+
+        .search-toggle {{
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: none;
+            border: none;
+            padding: 0.5rem;
+            cursor: pointer;
+            color: var(--color-gray-600);
+            border-radius: 0.375rem;
+            transition: color 0.15s, background 0.15s;
+        }}
+
+        .search-toggle:hover {{
+            background: var(--color-gray-100);
+            color: var(--color-gray-900);
+        }}
+
+        .search-form {{
+            display: flex;
+            align-items: center;
+            width: 0;
+            min-width: 0;
+            max-width: 0;
+            overflow: hidden;
+            opacity: 0;
+            flex: 0 0 0;
+            pointer-events: none;
+            transition: max-width 0.2s ease-out, opacity 0.15s ease-out;
+        }}
+
+        .search-form.is-open {{
+            width: 260px;
+            min-width: 260px;
+            max-width: 260px;
+            flex: 0 0 260px;
+            opacity: 1;
+            pointer-events: auto;
+        }}
+
+        .search-input-wrap {{
+            display: flex;
+            align-items: center;
+            width: 100%;
+            background: var(--color-gray-50);
+            border: 1px solid var(--color-gray-200);
+            border-radius: 0.5rem;
+            transition: border-color 0.15s;
+        }}
+
+        .search-form.is-open .search-input-wrap {{
+            border-color: var(--color-gray-300);
+        }}
+
+        .search-form.is-open .search-input-wrap:focus-within {{
+            border-color: var(--color-primary-300);
+            box-shadow: 0 0 0 2px var(--color-primary-50);
+        }}
+
+        .search-input {{
+            flex: 1;
+            min-width: 0;
+            padding: 0.5rem 0.75rem 0.5rem 1rem;
+            border: none;
+            background: transparent;
+            font-size: 0.875rem;
+            outline: none;
+            -webkit-appearance: none;
+            appearance: none;
+        }}
+
+        .search-input::-webkit-search-decoration,
+        .search-input::-webkit-search-cancel-button,
+        .search-input::-webkit-search-results-button,
+        .search-input::-webkit-search-results-decoration {{
+            display: none;
+        }}
+
+        .search-input::placeholder {{
+            color: var(--color-gray-400);
+        }}
+
+        .search-input-trailing {{
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0 0.75rem;
+            color: var(--color-gray-500);
+            flex-shrink: 0;
+        }}
+
+        .search-bar-wrapper:has(.search-form.is-open) .search-toggle {{
+            display: none;
+        }}
+
+        @media (max-width: 768px) {{
+            .search-form {{
+                position: absolute;
+                top: 100%;
+                right: 0;
+                margin-top: 0.5rem;
+                width: 0;
+                min-width: 0;
+                max-width: 0;
+                flex: 0 0 0;
+                opacity: 0;
+                visibility: hidden;
+                transform: translateY(-0.25rem);
+                transition: width 0.2s ease-out, opacity 0.15s ease-out, visibility 0.15s, transform 0.2s ease-out;
+                z-index: 200;
+            }}
+
+            .search-form.is-open {{
+                width: min(320px, calc(100vw - 2rem));
+                min-width: min(320px, calc(100vw - 2rem));
+                max-width: min(320px, calc(100vw - 2rem));
+                flex: 0 0 auto;
+                opacity: 1;
+                visibility: visible;
+                transform: translateY(0);
+                box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
+            }}
+
+        }}
     </style>
 </head>
 <body>
@@ -692,5 +909,6 @@ def create_html_template(
         </div>
         {toc_html}
     </div>
+    {search_script}
 </body>
 </html>"""

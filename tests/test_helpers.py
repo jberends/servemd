@@ -8,6 +8,16 @@ from pathlib import Path
 import pytest
 
 
+def test_path_to_doc_url():
+    """Test path_to_doc_url converts SearchResult.path to doc URL."""
+    from docs_server.helpers import path_to_doc_url
+
+    assert path_to_doc_url("features/mcp.md") == "/features/mcp.html"
+    assert path_to_doc_url("index.md") == "/index.html"
+    assert path_to_doc_url("api/endpoints.md") == "/api/endpoints.html"
+    assert path_to_doc_url("/features/mcp.md") == "/features/mcp.html"
+
+
 def test_is_safe_path():
     """Test path traversal security validation"""
     from docs_server.helpers import is_safe_path

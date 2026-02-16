@@ -43,6 +43,11 @@ PORT=8080 \
 uv run python -m docs_server
 ```
 
+**Clear cache on startup:**
+```bash
+uv run python -m docs_server --clear-cache
+```
+
 **Docker:**
 ```bash
 docker run \
