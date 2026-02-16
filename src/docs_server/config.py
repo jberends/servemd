@@ -35,6 +35,9 @@ class Settings:
         self.MCP_MAX_SEARCH_RESULTS = int(os.getenv("MCP_MAX_SEARCH_RESULTS", "10"))
         self.MCP_SNIPPET_LENGTH = int(os.getenv("MCP_SNIPPET_LENGTH", "200"))
 
+        # Branding
+        self.SERVEMD_BRANDING_ENABLED = os.getenv("SERVEMD_BRANDING_ENABLED", "true").lower() == "true"
+
         # Markdown extensions configuration
         self.markdown_extensions = [
             "codehilite",

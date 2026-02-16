@@ -323,6 +323,43 @@ def test_create_html_template_search_params_xss_safe():
     assert "&#x27;" in result
 
 
+def test_create_html_template_branding_when_enabled():
+    """Test that branding is rendered in sidebar when show_branding is True."""
+    from docs_server.templates import create_html_template
+
+    navigation = [{"type": "link", "title": "Home", "link": "index.html"}]
+    result = create_html_template(
+        "<p>Content</p>", navigation=navigation, show_branding=True
+    )
+
+    assert "Powered by servemd" in result
+    assert "github.com/jberends/servemd" in result
+    assert "servemd-branding" in result
+
+
+def test_create_html_template_no_branding_when_disabled():
+    """Test that branding footer is absent when show_branding is False."""
+    from docs_server.templates import create_html_template
+
+    result = create_html_template("<p>Content</p>", show_branding=False)
+
+    assert "Powered by servemd" not in result
+    assert "<footer class='servemd-branding'>" not in result
+
+
+def test_create_html_template_branding_link_attributes():
+    """Test that branding link has correct external link attributes."""
+    from docs_server.templates import create_html_template
+
+    navigation = [{"type": "link", "title": "Home", "link": "index.html"}]
+    result = create_html_template(
+        "<p>Content</p>", navigation=navigation, show_branding=True
+    )
+
+    assert 'target="_blank"' in result
+    assert 'rel="noopener noreferrer"' in result
+
+
 def test_create_html_template_search_custom_svg(tmp_path, monkeypatch):
     """Test that custom SVG from DOCS_ROOT is used when path is safe."""
     from docs_server import config

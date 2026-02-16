@@ -7,6 +7,6 @@
 ## right
 * [GitHub](https://github.com/yourusername/markdown-docs-server)
 * [Docker Hub](https://hub.docker.com/r/yourusername/markdown-docs-server)
-* {{search:icon=lucide-search,mode=full,placeholder=Search...}}
+* {{search:icon=lucide-search,mode=button,placeholder=Search...}}
 
 <!-- Re{{search}} the {{search}} tag: see Navigation docs for mode, icon, and more. -->

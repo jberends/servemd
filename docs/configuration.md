@@ -13,6 +13,7 @@ Configure the documentation server with environment variables and file structure
 | `PORT` | `8080` | HTTP server port |
 | `DEBUG` | `false` | Enable debug mode with auto-reload |
 | `BASE_URL` | Auto-detected | Base URL for absolute links in llms.txt |
+| `SERVEMD_BRANDING_ENABLED` | `true` | Show "Powered by servemd" footer. Set to `false` to disable for white-label or self-hosted deployments |
 
 ### MCP Settings
 
@@ -58,6 +59,12 @@ docker run \
   -v $(pwd)/docs:/app/docs \
   markdown-docs-server
 ```
+
+**White-label (disable branding):**
+```bash
+SERVEMD_BRANDING_ENABLED=false uv run python -m docs_server
+```
+The "Powered by servemd" footer is shown by default. Disable it with `SERVEMD_BRANDING_ENABLED=false` for white-label or self-hosted deployments where you prefer no attribution.
 
 ---
 

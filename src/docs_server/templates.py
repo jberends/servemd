@@ -49,6 +49,7 @@ def create_html_template(
     show_search: bool = False,
     search_query: str = "",
     is_search_page: bool = False,
+    show_branding: bool = True,
 ) -> str:
     """
     Create a complete HTML document with sidebar navigation and topbar.
@@ -169,7 +170,14 @@ def create_html_template(
                 sidebar_html += "</ul>"
                 sidebar_html += "</div>"
 
-        sidebar_html += "</div></nav>"
+        sidebar_html += "</div>"
+        if show_branding:
+            sidebar_html += (
+                "<div class='servemd-branding'>"
+                '<a href="https://github.com/jberends/servemd" target="_blank" rel="noopener noreferrer">'
+                "Powered by servemd</a></div>"
+            )
+        sidebar_html += "</nav>"
 
     topbar_html = ""
     if any(topbar_sections.values()) or show_search:  # If any section has items or search bar
@@ -393,6 +401,7 @@ def create_html_template(
             color: var(--color-gray-900);
             background-color: var(--color-neutral-50);
             display: flex;
+            flex-direction: column;
             min-height: 100vh;
         }}
 
@@ -401,18 +410,26 @@ def create_html_template(
             width: 280px;
             background: white;
             border-right: 1px solid var(--color-gray-200);
-            padding: 1rem;
-            overflow-y: auto;
+            padding: 0.75rem;
             position: fixed;
             height: calc(100vh - 60px);
             left: 0;
             top: 60px;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            z-index: 99;
         }}
 
-        .nav-content {{ padding: 0; }}
+        .nav-content {{
+            padding: 0;
+            flex: 1;
+            overflow-y: auto;
+            min-height: 0;
+        }}
 
         .nav-group {{
-            margin-bottom: 1rem;
+            margin-bottom: 0.5rem;
         }}
 
         .nav-group:last-child {{
@@ -421,14 +438,14 @@ def create_html_template(
 
         .nav-group-header {{
             display: block;
-            padding: 0.5rem 0.75rem;
+            padding: 0.375rem 0.5rem;
             color: var(--color-gray-700);
             text-decoration: none;
             border-radius: 0.5rem;
             font-weight: 600;
             font-size: 0.875rem;
             transition: all 0.2s;
-            margin-bottom: 0.25rem;
+            margin-bottom: 0.125rem;
         }}
 
         .nav-group-header:hover {{
@@ -444,13 +461,13 @@ def create_html_template(
 
         .nav-standalone-link {{
             display: block;
-            padding: 0.5rem 0.75rem;
+            padding: 0.375rem 0.5rem;
             color: var(--color-gray-700);
             text-decoration: none;
             border-radius: 0.5rem;
             font-weight: 500;
             transition: all 0.2s;
-            margin-bottom: 0.25rem;
+            margin-bottom: 0.125rem;
         }}
 
         .nav-standalone-link:hover {{
@@ -479,7 +496,7 @@ def create_html_template(
 
         .nav-group-link {{
             display: block;
-            padding: 0.375rem 0.75rem;
+            padding: 0.25rem 0.5rem;
             color: var(--color-gray-600);
             text-decoration: none;
             border-radius: 0.375rem;
@@ -617,9 +634,9 @@ def create_html_template(
             flex: 1;
             margin-left: 280px;
             margin-top: 60px;
-            padding: 2rem;
+            padding: 1.25rem;
             display: flex;
-            gap: 2rem;
+            gap: 1.25rem;
             max-width: calc(100vw - 280px);
         }}
 
@@ -628,7 +645,7 @@ def create_html_template(
             max-width: none;
             background: white;
             border-radius: 0.75rem;
-            padding: 2rem;
+            padding: 1.25rem;
             box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
             border: 1px solid var(--color-gray-200);
         }}
@@ -637,7 +654,7 @@ def create_html_template(
             width: 240px;
             flex-shrink: 0;
             position: sticky;
-            top: calc(60px + 2rem);
+            top: calc(60px + 1.25rem);
             height: fit-content;
             max-height: calc(100vh - 60px - 4rem);
             overflow-y: auto;
@@ -647,8 +664,8 @@ def create_html_template(
             font-size: 0.875rem;
             font-weight: 600;
             color: var(--color-gray-900);
-            margin-bottom: 1rem;
-            padding-bottom: 0.5rem;
+            margin-bottom: 0.5rem;
+            padding-bottom: 0.25rem;
             border-bottom: 1px solid var(--color-gray-200);
         }}
 
@@ -698,7 +715,7 @@ def create_html_template(
         /* Typography */
         h1, h2, h3, h4, h5, h6 {{
             color: var(--accent-black);
-            margin-bottom: 1rem;
+            margin-bottom: 0.75rem;
             font-weight: 600;
             position: relative;
         }}
@@ -729,13 +746,13 @@ def create_html_template(
         h1 {{
             font-size: 2.5rem;
             border-bottom: 2px solid var(--accent-primary);
-            padding-bottom: 0.5rem;
-            margin-bottom: 2rem;
+            padding-bottom: 0.25rem;
+            margin-bottom: 1.25rem;
         }}
-        h2 {{ font-size: 2rem; margin-top: 2rem; }}
-        h3 {{ font-size: 1.5rem; margin-top: 1.5rem; }}
+        h2 {{ font-size: 2rem; margin-top: 1.25rem; }}
+        h3 {{ font-size: 1.5rem; margin-top: 1rem; }}
 
-        p {{ margin-bottom: 1rem; }}
+        p {{ margin-bottom: 0.75rem; }}
 
         /* Code blocks */
         .highlight, pre, code {{
@@ -746,8 +763,8 @@ def create_html_template(
         }}
 
         .highlight, pre {{
-            padding: 1rem;
-            margin: 1rem 0;
+            padding: 0.75rem;
+            margin: 0.75rem 0;
             overflow-x: auto;
             font-size: 0.875rem;
         }}
@@ -761,14 +778,14 @@ def create_html_template(
         table {{
             width: 100%;
             border-collapse: collapse;
-            margin: 1rem 0;
+            margin: 0.75rem 0;
             border-radius: 0.5rem;
             overflow: hidden;
             border: 1px solid var(--color-gray-200);
         }}
 
         th, td {{
-            padding: 0.75rem;
+            padding: 0.5rem 0.75rem;
             text-align: left;
             border-bottom: 1px solid var(--color-gray-200);
         }}
@@ -796,23 +813,23 @@ def create_html_template(
 
         /* Lists */
         ul, ol {{
-            margin: 1rem 0;
+            margin: 0.75rem 0;
             padding-left: 2rem;
         }}
 
         li {{
-            margin-bottom: 0.5rem;
+            margin-bottom: 0.375rem;
         }}
 
         /* Blockquotes */
         blockquote {{
             border-left: 4px solid var(--accent-primary);
-            padding-left: 1rem;
-            margin: 1rem 0;
+            padding-left: 0.75rem;
+            margin: 0.75rem 0;
             font-style: italic;
             color: var(--color-gray-600);
             background-color: var(--color-gray-50);
-            padding: 1rem;
+            padding: 0.75rem;
             border-radius: 0.5rem;
         }}
 
@@ -833,7 +850,7 @@ def create_html_template(
             max-width: 100%;
             height: auto;
             border-radius: 0.5rem;
-            margin: 1rem 0;
+            margin: 0.75rem 0;
             border: 1px solid var(--color-gray-200);
         }}
 
@@ -851,13 +868,14 @@ def create_html_template(
 
             .main-content {{
                 margin-left: 0;
-                padding: 1rem;
+                padding: 0.75rem;
                 flex-direction: column;
             }}
 
             .content {{
-                padding: 1.5rem;
+                padding: 1rem;
             }}
+
         }}
 
         .search-bar-wrapper {{
@@ -1092,6 +1110,26 @@ def create_html_template(
                 box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
             }}
 
+        }}
+
+        .servemd-branding {{
+            flex-shrink: 0;
+            font-size: 0.8125rem;
+            color: var(--color-gray-500);
+            padding: 0.5rem 0 0;
+            margin-top: auto;
+            border-top: 1px solid var(--color-gray-200);
+            background: white;
+        }}
+
+        .servemd-branding a {{
+            color: var(--color-gray-500);
+            text-decoration: none;
+        }}
+
+        .servemd-branding a:hover {{
+            color: var(--color-gray-700);
+            text-decoration: underline;
         }}
     </style>
 </head>
