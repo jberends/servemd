@@ -9,6 +9,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **In-page search** - Human-readable search experience when MCP is enabled:
+  - Search bar in topbar (configurable via `{{search}}` placeholder in `topbar.md`)
+  - Search page at `/search?q=...` with live results as you type (debounced, min 3 characters)
+  - Keyboard shortcut `/` to focus search bar; `Escape` to blur
+  - Search terms highlighted in results (pale yellow marker)
+  - Configurable icon, mode (`full`, `button`, `input`), and placeholder via `{{search:icon=...,mode=...,placeholder=...}}`
+  - JSON endpoint (`/search?format=json`) for client-side live search
+- **`--clear-cache` CLI flag** - Clear the cache directory on startup before serving
 - **Hetzner bare server deployment** - Minimal deployment guide for Debian 13 VPS on Hetzner (`deployment/hetzner/`). Includes Docker Compose stack with servemd + Caddy reverse proxy, automatic HTTPS via Let's Encrypt, and hourly auto-updates via cron. See `deployment/hetzner/README.md`.
 
 ### Changed
@@ -23,6 +31,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Log injection in MCP search** - Sanitized user-provided search query and exception messages before logging to prevent log injection (CodeQL High).
 - **Sidebar and topbar link resolution** - Links in `sidebar.md` and `topbar.md` are now normalized to root-relative paths (`/dir/page.html`) during parsing. Previously, relative links like `deployment/docker.html` were resolved by the browser relative to the current page URL, causing broken links (e.g. `/dir/dir/page.html`) when viewing pages in subdirectories. Content markdown links remain relative to the current file and work correctly.
 
 ## v0.2.0 (2026-02-02)

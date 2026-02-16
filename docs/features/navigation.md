@@ -44,6 +44,15 @@ The sidebar automatically detects two types:
 
 The topbar provides quick access to key pages and external links.
 
+### Placeholders
+
+Topbar items support special placeholders. Use double braces so that single braces like `{logo}` display as literal text in documentation:
+
+| Tag | Section | Purpose |
+|-----|---------|---------|
+| `{{logo}}` | left | Logo + optional link (see [Logo Support](#logo-support)) |
+| `{{search}}` | left, middle, or right | Search bar when MCP is enabled (see [Search Bar Placement](#search-bar-placement)) |
+
 ### Structure Format
 
 Create `topbar.md` with sections:
@@ -88,6 +97,77 @@ Create `topbar.md` with sections:
 
 ---
 
+## Search Bar Placement
+
+When MCP search is enabled, place the search bar exactly where you want it using the `{{search}}` placeholder in any topbar section (left, middle, or right).
+
+> **Re{{search}} the `{{search}}` tag** — defaults can be set right in the tag. See all options below.
+
+### Syntax
+
+| Syntax | Description |
+|--------|-------------|
+| `{{search}}` | Defaults: full mode, search icon, "Search..." placeholder |
+| `{{search:key=value}}` | Single parameter |
+| `{{search:key1=val1,key2=val2}}` | Multiple parameters (comma-separated) |
+
+### All Parameters
+
+| Parameter | Values | Default | Description |
+|-----------|--------|---------|-------------|
+| `icon` | `i-lucide-star`, `lucide-search`, `lucide-x`, `lucide-star`, or path like `assets/search.svg` | `lucide-search` | Icon shown in button and input. Use `i-lucide-{name}` for any [Lucide icon](https://lucide.dev/icons) (loaded from Iconify CDN). Built-in: lucide-search, lucide-x, lucide-star. Custom paths are relative to `DOCS_ROOT`. |
+| `mode` | `full`, `button`, `input` | `full` | `full` = input + trailing icon, always visible; `button` = icon only, tap to expand; `input` = input only, no icon. |
+| `placeholder` | Any string | `Search...` | Placeholder text in the search input. |
+
+### All Options — Examples
+
+**Default (no params):**
+```markdown
+* {{search}}
+```
+
+**Icon options:**
+```markdown
+* {{search:icon=lucide-search}}     <!-- default magnifying glass (built-in) -->
+* {{search:icon=i-lucide-star}}    <!-- any Lucide icon via Iconify CDN -->
+* {{search:icon=i-lucide-search}}   <!-- same as lucide-search, from CDN -->
+* {{search:icon=lucide-x}}         <!-- X icon -->
+* {{search:icon=lucide-star}}      <!-- star icon (built-in) -->
+* {{search:icon=assets/search.svg}} <!-- custom SVG from docs/assets/ -->
+```
+
+**Mode options:**
+```markdown
+* {{search:mode=full}}    <!-- [ Search.... {icon} ] always visible (default) -->
+* {{search:mode=button}}  <!-- icon only, tap to expand -->
+* {{search:mode=input}}   <!-- input only, no icon -->
+```
+
+**Placeholder:**
+```markdown
+* {{search:placeholder=Search...}}     <!-- default -->
+* {{search:placeholder=Zoeken...}}     <!-- Dutch -->
+* {{search:placeholder=Find a page...}}
+```
+
+**Combined (all params):**
+```markdown
+* {{search:icon=lucide-search,mode=button,placeholder=Zoeken...}}
+* {{search:mode=button,placeholder=Find...}}
+* {{search:icon=assets/search.svg,placeholder=Search docs...}}
+```
+
+When `{{search}}` is present, the search bar renders at that position. When absent, it defaults to the far right of the right section.
+
+### Keyboard Shortcuts
+
+| Key | Action |
+|-----|--------|
+| `/` | Focus the search bar (ignored when focus is in an input or textarea) |
+| `Escape` | Blur the search input |
+
+---
+
 ## Active State Highlighting
 
 Both sidebar and topbar automatically highlight the current page.
@@ -109,7 +189,7 @@ Add a logo to the topbar left section:
 
 ```markdown
 ## left
-* {logo} | [Home](index.md)
+* {{logo}} | [Home](index.md)
 * [Docs](docs.md)
 ```
 
@@ -173,7 +253,7 @@ Place your logo at `docs/assets/logo.svg`
 # Top Navigation
 
 ## left
-* {logo} | [Docs Home](index.md)
+* {{logo}} | [Docs Home](index.md)
 * [Quick Start](quick-start.md)
 * [API](api.md)
 

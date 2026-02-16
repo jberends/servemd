@@ -43,6 +43,11 @@ PORT=8080 \
 uv run python -m docs_server
 ```
 
+**Clear cache on startup:**
+```bash
+uv run python -m docs_server --clear-cache
+```
+
 **Docker:**
 ```bash
 docker run \
@@ -130,6 +135,15 @@ Top bar with left/middle/right sections:
 - `## left` - Left side (logo, main links)
 - `## middle` - Center (optional, breadcrumbs)
 - `## right` - Right side (external links, social)
+
+**Placeholders** (double braces so `{logo}` displays literally elsewhere):
+
+| Tag | Syntax | Purpose |
+|-----|--------|---------|
+| `{{logo}}` | `* {{logo}} \| [Home](index.md)` | Logo + link in left section |
+| `{{search}}` | `* {{search}}` or `* {{search:icon=...,mode=...,placeholder=...}}` | Search bar (MCP search when enabled) |
+
+See [Navigation Features](features/navigation.md) for all `{{search}}` options: `icon` (lucide-search, lucide-x, custom SVG), `mode` (full, button, input), `placeholder`.
 
 ---
 

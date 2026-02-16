@@ -9,6 +9,7 @@ with FuzzyTermPlugin for typo tolerance.
 from __future__ import annotations
 
 import logging
+import re
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
@@ -21,6 +22,33 @@ if TYPE_CHECKING:
     pass
 
 logger = logging.getLogger(__name__)
+
+
+def _sanitize_for_log(value: str | None) -> str:
+    """
+    Replace control characters and newlines to prevent log injection.
+
+    User-provided values (e.g. search query) must not be logged raw, as they
+    can contain newlines or control chars that forge log entries.
+
+    This helper guarantees a single-line, printable string suitable for logs.
+    """
+    if value is None:
+        return ""
+
+    # Ensure we are working with a string
+    if not isinstance(value, str):
+        try:
+            value = str(value)
+        except Exception:
+            # Fallback to a safe placeholder if string conversion fails
+            return "<non-string value>"
+
+    # Replace control characters (including newlines) with spaces
+    cleaned = re.sub(r"[\n\r\x00-\x1f\x7f-\x9f]", " ", value)
+    # Collapse repeated whitespace and trim ends to keep logs compact/readable
+    cleaned = re.sub(r"\s+", " ", cleaned).strip()
+    return cleaned
 
 
 @dataclass
@@ -109,11 +137,18 @@ def search_docs(query: str, limit: int | None = None) -> list[SearchResult]:
                     )
                 )
 
-        logger.info(f"Search '{query}' returned {len(results)} results")
+        logger.info(f"Search '{_sanitize_for_log(query)}' returned {len(results)} results")
         return results
 
     except Exception as e:
-        logger.error(f"Search error for query '{query}': {e}", exc_info=True)
+        safe_query = _sanitize_for_log(query)
+        safe_error = _sanitize_for_log(str(e))
+        logger.error(
+            "Search error for query '%s': %s",
+            safe_query,
+            safe_error,
+            exc_info=True,
+        )
         raise RuntimeError(f"Search failed: {e}") from e
 
 
@@ -170,9 +205,6 @@ def _clean_snippet(snippet: str) -> str:
     Returns:
         Cleaned snippet string
     """
-    # Replace multiple whitespace with single space
-    import re
-
     cleaned = re.sub(r"\s+", " ", snippet)
     # Strip leading/trailing whitespace
     cleaned = cleaned.strip()

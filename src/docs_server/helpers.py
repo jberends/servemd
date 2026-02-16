@@ -15,6 +15,97 @@ from .config import settings
 logger = logging.getLogger(__name__)
 
 
+def path_to_doc_url(path: str) -> str:
+    """
+    Convert SearchResult.path (e.g. features/mcp.md) to doc URL (/features/mcp.html).
+    """
+    if path.endswith(".md"):
+        path = path[:-3] + ".html"
+    return "/" + path.lstrip("/")
+
+
+def _strip_whoosh_highlight_html(text: str) -> str:
+    """Remove Whoosh highlight tags (<b class='match term0'>...</b>) to get plain text."""
+    return re.sub(r"</?b[^>]*>", "", text)
+
+
+def format_search_results_human(results: list[Any], query: str = "") -> str:
+    """
+    Format search results as human-readable HTML cards.
+
+    Each result is rendered as a card with title (linked), path breadcrumb,
+    snippet, and score badge. The output is a self-contained HTML fragment
+    suitable for injection into the search page results div.
+
+    Args:
+        results: List of SearchResult objects (path, title, snippet, score, category).
+        query: The original search query (used for highlighting).
+
+    Returns:
+        HTML string with result cards, or a "no results" message.
+    """
+    from html import escape as html_escape
+
+    if not results:
+        safe_q = html_escape(query) if query else ""
+        if safe_q:
+            return f"<p class='search-no-results'>No results found for &lsquo;{safe_q}&rsquo;</p>"
+        return "<p class='search-no-results'>Enter a search term to find documentation.</p>"
+
+    count = len(results)
+    parts: list[str] = [f"<p class='search-result-count'>Found {count} result{'s' if count != 1 else ''}:</p>"]
+
+    for result in results:
+        url = path_to_doc_url(result.path)
+        safe_title = html_escape(result.title)
+        safe_path = html_escape(result.path)
+        # Strip Whoosh HTML, escape, then we apply our own highlight
+        plain_snippet = _strip_whoosh_highlight_html(result.snippet) if result.snippet else ""
+        safe_snippet = html_escape(plain_snippet) if plain_snippet else ""
+        safe_category = html_escape(result.category) if result.category else ""
+
+        card = "<div class='search-result-card'>"
+        card += f"<a href='{url}' class='search-result-title'>{safe_title}</a>"
+        if safe_category:
+            card += f"<span class='search-result-category'>{safe_category}</span>"
+        card += f"<span class='search-result-path'>{safe_path}</span>"
+        if safe_snippet:
+            card += f"<p class='search-result-snippet'>{safe_snippet}</p>"
+        card += "</div>"
+        parts.append(card)
+
+    html_out = "\n".join(parts)
+    if query:
+        html_out = highlight_search_terms(html_out, query)
+    return html_out
+
+
+def highlight_search_terms(html: str, query: str) -> str:
+    """
+    Wrap search term matches in <mark class="search-highlight"> for pale yellow highlighting.
+    Matches case-insensitively (e.g. q=mcp highlights both "MCP" and "mcp").
+    Only highlights in text content, not inside HTML tags (avoids breaking structure when
+    searching for terms like "div" or "span").
+    """
+    if not query or not query.strip():
+        return html
+    term = query.strip()
+    pattern = re.compile(re.escape(term), re.IGNORECASE)
+
+    def replacer(match: re.Match[str]) -> str:
+        return f'<mark class="search-highlight">{match.group(0)}</mark>'
+
+    # Split by HTML tags; only apply highlighting to text content, not inside <...>
+    parts = re.split(r"(<[^>]+>)", html)
+    result = []
+    for part in parts:
+        if part.startswith("<") and part.endswith(">"):
+            result.append(part)
+        else:
+            result.append(pattern.sub(replacer, part))
+    return "".join(result)
+
+
 def is_safe_path(path: str, base_path: Path) -> bool:
     """
     Validate that the requested path is within the allowed directory boundaries.
@@ -149,8 +240,8 @@ def parse_topbar_links() -> dict[str, list[dict[str, str]]]:
             if current_section and line.startswith("* "):
                 item_text = line[2:].strip()
 
-                # Handle special logo syntax: {logo} | [Home](index.html)
-                if item_text.startswith("{logo}"):
+                # Handle special logo syntax: {{logo}} | [Home](index.html)
+                if item_text.startswith("{{logo}}"):
                     # Extract the part after the pipe
                     if "|" in item_text:
                         after_pipe = item_text.split("|", 1)[1].strip()
@@ -169,6 +260,19 @@ def parse_topbar_links() -> dict[str, list[dict[str, str]]]:
                         # Just logo without pipe
                         sections[current_section].append({"type": "logo_only"})
                     logger.debug(f"Added logo item to {current_section}")
+
+                # Handle {{search}} or {{search:params}} placeholder
+                elif item_text == "{{search}}" or item_text.startswith("{{search:"):
+                    params: dict[str, str] = {}
+                    if ":" in item_text:
+                        params_str = item_text.split(":", 1)[1].removesuffix("}}")
+                        for pair in params_str.split(","):
+                            pair = pair.strip()
+                            if "=" in pair:
+                                k, v = pair.split("=", 1)
+                                params[k.strip().lower()] = v.strip()
+                    sections[current_section].append({"type": "search", "params": params})
+                    logger.debug(f"Added search placeholder to {current_section} with params {params}")
 
                 # Handle regular markdown links: [Title](link)
                 elif "[" in item_text and "](" in item_text:

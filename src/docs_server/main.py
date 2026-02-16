@@ -17,7 +17,14 @@ from slowapi.util import get_remote_address
 
 from .caching import get_cached_html, get_cached_llms, save_cached_html, save_cached_llms
 from .config import settings
-from .helpers import extract_table_of_contents, get_file_path, parse_sidebar_navigation, parse_topbar_links
+from .helpers import (
+    extract_table_of_contents,
+    format_search_results_human,
+    get_file_path,
+    parse_sidebar_navigation,
+    parse_topbar_links,
+    path_to_doc_url,
+)
 from .llms_service import generate_llms_txt_content
 from .markdown_service import render_markdown_to_html
 from .templates import create_html_template
@@ -293,6 +300,170 @@ async def root():
     return RedirectResponse(url="/index.html", status_code=302)
 
 
+@app.get("/search")
+async def search_page(q: str = "", format: str = ""):
+    """
+    Search documentation. Displays results in main content area with sidebar and topbar.
+
+    Supports two response formats:
+    - HTML (default): Full page with searchbar + searchresults layout
+    - JSON (format=json): HTML fragment of results for client-side live search
+
+    Empty or whitespace-only query:
+    - HTML: shows the search page with empty results prompt
+    - JSON: returns empty results
+    """
+    query = q.strip() if q else ""
+    is_json = format.lower() == "json"
+
+    # JSON format: return structured response for client-side fetch
+    if is_json:
+        return await _search_json_response(query)
+
+    # HTML format: full search page with searchbar + searchresults layout
+    return await _search_html_response(query)
+
+
+async def _search_json_response(query: str) -> JSONResponse:
+    """Return search results as JSON with a pre-rendered HTML fragment."""
+    if not query:
+        return JSONResponse(content={"query": "", "count": 0, "results": [], "html": ""})
+
+    # Check availability
+    if not settings.MCP_ENABLED:
+        return JSONResponse(
+            content={
+                "query": query,
+                "count": 0,
+                "results": [],
+                "html": "<p class='search-no-results'>Search is not available.</p>",
+            }
+        )
+
+    try:
+        from .mcp import get_index_manager
+
+        manager = get_index_manager()
+        if not manager.is_initialized:
+            return JSONResponse(
+                content={
+                    "query": query,
+                    "count": 0,
+                    "results": [],
+                    "html": "<p class='search-no-results'>Search will be available once the index is built.</p>",
+                }
+            )
+    except Exception as e:
+        logger.warning(f"Search index check failed: {e}")
+        return JSONResponse(
+            content={
+                "query": query,
+                "count": 0,
+                "results": [],
+                "html": "<p class='search-no-results'>Search will be available once the index is built.</p>",
+            }
+        )
+
+    try:
+        from .mcp import search_docs
+
+        results = search_docs(query=query)
+    except RuntimeError as e:
+        logger.warning(f"Search failed: {e}")
+        return JSONResponse(
+            content={
+                "query": query,
+                "count": 0,
+                "results": [],
+                "html": "<p class='search-no-results'>Search will be available once the index is built.</p>",
+            }
+        )
+
+    # Build JSON payload with pre-rendered HTML fragment
+    results_html = format_search_results_human(results, query)
+    results_data = [
+        {
+            "title": r.title,
+            "path": r.path,
+            "url": path_to_doc_url(r.path),
+            "snippet": r.snippet,
+            "score": round(r.score, 2),
+            "category": r.category,
+        }
+        for r in results
+    ]
+    return JSONResponse(
+        content={
+            "query": query,
+            "count": len(results),
+            "results": results_data,
+            "html": results_html,
+        }
+    )
+
+
+async def _search_html_response(query: str) -> HTMLResponse | RedirectResponse:
+    """Return the full search page with searchbar + searchresults layout."""
+    navigation = parse_sidebar_navigation()
+    topbar_sections = parse_topbar_links()
+
+    # Determine results HTML fragment
+    results_html = ""
+    unavailable_msg = "<p class='search-no-results'>Search will be available once the index is built.</p>"
+
+    if not settings.MCP_ENABLED:
+        results_html = unavailable_msg
+    elif query:
+        try:
+            from .mcp import get_index_manager
+
+            manager = get_index_manager()
+            if not manager.is_initialized:
+                results_html = unavailable_msg
+            else:
+                from .mcp import search_docs
+
+                results = search_docs(query=query)
+                results_html = format_search_results_human(results, query)
+        except RuntimeError as e:
+            logger.warning(f"Search failed: {e}")
+            results_html = unavailable_msg
+        except Exception as e:
+            logger.warning(f"Search index check failed: {e}")
+            results_html = unavailable_msg
+
+    # Build the search page content: searchbar div + searchresults div
+    import html as html_mod
+
+    safe_query = html_mod.escape(query, quote=True) if query else ""
+    content_html = f"""<div class="search-page">
+    <form action="/search" method="GET" class="search-page-form" id="search-page-form">
+        <span class="search-input-wrap">
+            <input type="text" name="q" placeholder="Search documentation..." value="{safe_query}"
+                   class="search-input" id="search-page-input" autocomplete="off" autofocus>
+        </span>
+        <button type="submit" class="search-page-btn">Search</button>
+    </form>
+    <div class="search-page-results" id="search-page-results">
+        {results_html}
+    </div>
+</div>"""
+
+    title = f"Search: {query} - Documentation" if query else "Search - Documentation"
+    full_html = create_html_template(
+        content_html,
+        title=title,
+        current_path="/search",
+        navigation=navigation,
+        topbar_sections=topbar_sections,
+        toc_items=[],
+        show_search=settings.MCP_ENABLED,
+        search_query=query,
+        is_search_page=True,
+    )
+    return HTMLResponse(content=full_html)
+
+
 @app.get("/{path:path}")
 async def serve_content(path: str, request: Request):
     """
@@ -334,7 +505,15 @@ async def serve_content(path: str, request: Request):
             title = f"{file_path.stem.replace('_', ' ').title()} - Documentation"
             # Root-relative path for active state (matches sidebar/topbar link format)
             current_path = f"/{path}" if path and not path.startswith("/") else path
-            full_html = create_html_template(html_content, title, current_path, navigation, topbar_sections, toc_items)
+            full_html = create_html_template(
+                html_content,
+                title,
+                current_path,
+                navigation,
+                topbar_sections,
+                toc_items,
+                show_search=settings.MCP_ENABLED,
+            )
 
             # Cache the rendered HTML
             await save_cached_html(file_path, full_html)
@@ -390,7 +569,21 @@ async def serve_content(path: str, request: Request):
 
 def main():
     """Main entry point for the application"""
+    import argparse
+    import sys
+
     import uvicorn
+
+    parser = argparse.ArgumentParser(description="ServeMD Documentation Server")
+    parser.add_argument(
+        "--clear-cache",
+        action="store_true",
+        help="Clear the cache directory on startup before serving",
+    )
+    args, _ = parser.parse_known_args(sys.argv[1:])
+
+    if args.clear_cache:
+        settings.clear_cache()
 
     logger.info("🚀 Starting ServeMD Documentation Server...")
     logger.info(f"🌐 Server will be available at: http://localhost:{settings.PORT}")
