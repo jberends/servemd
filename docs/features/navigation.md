@@ -115,7 +115,7 @@ When MCP search is enabled, place the search bar exactly where you want it using
 
 | Parameter | Values | Default | Description |
 |-----------|--------|---------|-------------|
-| `icon` | `lucide-search`, `lucide-x`, or path like `assets/search.svg` | `lucide-search` | Icon shown in button and input. Lucide icons are built-in; custom paths are relative to `DOCS_ROOT` (validated, no path traversal). |
+| `icon` | `i-lucide-star`, `lucide-search`, `lucide-x`, `lucide-star`, or path like `assets/search.svg` | `lucide-search` | Icon shown in button and input. Use `i-lucide-{name}` for any [Lucide icon](https://lucide.dev/icons) (loaded from Iconify CDN). Built-in: lucide-search, lucide-x, lucide-star. Custom paths are relative to `DOCS_ROOT`. |
 | `mode` | `full`, `button`, `input` | `full` | `full` = input + trailing icon, always visible; `button` = icon only, tap to expand; `input` = input only, no icon. |
 | `placeholder` | Any string | `Search...` | Placeholder text in the search input. |
 
@@ -128,8 +128,11 @@ When MCP search is enabled, place the search bar exactly where you want it using
 
 **Icon options:**
 ```markdown
-* {{search:icon=lucide-search}}     <!-- default magnifying glass -->
+* {{search:icon=lucide-search}}     <!-- default magnifying glass (built-in) -->
+* {{search:icon=i-lucide-star}}    <!-- any Lucide icon via Iconify CDN -->
+* {{search:icon=i-lucide-search}}   <!-- same as lucide-search, from CDN -->
 * {{search:icon=lucide-x}}         <!-- X icon -->
+* {{search:icon=lucide-star}}      <!-- star icon (built-in) -->
 * {{search:icon=assets/search.svg}} <!-- custom SVG from docs/assets/ -->
 ```
 

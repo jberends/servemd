@@ -19,8 +19,8 @@ from .caching import get_cached_html, get_cached_llms, save_cached_html, save_ca
 from .config import settings
 from .helpers import (
     extract_table_of_contents,
+    format_search_results_human,
     get_file_path,
-    highlight_search_terms,
     parse_sidebar_navigation,
     parse_topbar_links,
     path_to_doc_url,
@@ -301,124 +301,165 @@ async def root():
 
 
 @app.get("/search")
-async def search_page(q: str = ""):
+async def search_page(q: str = "", format: str = ""):
     """
     Search documentation. Displays results in main content area with sidebar and topbar.
-    Empty or whitespace-only query redirects to home.
+
+    Supports two response formats:
+    - HTML (default): Full page with searchbar + searchresults layout
+    - JSON (format=json): HTML fragment of results for client-side live search
+
+    Empty or whitespace-only query:
+    - HTML: shows the search page with empty results prompt
+    - JSON: returns empty results
     """
-    # Empty or whitespace-only → redirect to home
-    if not q or not q.strip():
-        return RedirectResponse(url="/index.html", status_code=302)
+    query = q.strip() if q else ""
+    is_json = format.lower() == "json"
 
-    query = q.strip()
+    # JSON format: return structured response for client-side fetch
+    if is_json:
+        return await _search_json_response(query)
 
-    # Parse navigation for layout
-    navigation = parse_sidebar_navigation()
-    topbar_sections = parse_topbar_links()
+    # HTML format: full search page with searchbar + searchresults layout
+    return await _search_html_response(query)
 
-    # Check MCP enabled and index availability
+
+async def _search_json_response(query: str) -> JSONResponse:
+    """Return search results as JSON with a pre-rendered HTML fragment."""
+    if not query:
+        return JSONResponse(content={"query": "", "count": 0, "results": [], "html": ""})
+
+    # Check availability
     if not settings.MCP_ENABLED:
-        content_html = "<p>Search will be available once the index is built.</p>"
-        full_html = create_html_template(
-            content_html,
-            title="Search - Documentation",
-            current_path="/search",
-            navigation=navigation,
-            topbar_sections=topbar_sections,
-            toc_items=[],
-            show_search=settings.MCP_ENABLED,
+        return JSONResponse(
+            content={
+                "query": query,
+                "count": 0,
+                "results": [],
+                "html": "<p class='search-no-results'>Search is not available.</p>",
+            }
         )
-        return HTMLResponse(content=full_html)
 
     try:
         from .mcp import get_index_manager
 
         manager = get_index_manager()
         if not manager.is_initialized:
-            content_html = "<p>Search will be available once the index is built.</p>"
-            full_html = create_html_template(
-                content_html,
-                title="Search - Documentation",
-                current_path="/search",
-                navigation=navigation,
-                topbar_sections=topbar_sections,
-                toc_items=[],
-                show_search=settings.MCP_ENABLED,
-                search_query=query,
+            return JSONResponse(
+                content={
+                    "query": query,
+                    "count": 0,
+                    "results": [],
+                    "html": "<p class='search-no-results'>Search will be available once the index is built.</p>",
+                }
             )
-            return HTMLResponse(content=full_html)
     except Exception as e:
         logger.warning(f"Search index check failed: {e}")
-        content_html = "<p>Search will be available once the index is built.</p>"
-        full_html = create_html_template(
-            content_html,
-            title="Search - Documentation",
-            current_path="/search",
-            navigation=navigation,
-            topbar_sections=topbar_sections,
-            toc_items=[],
-            show_search=settings.MCP_ENABLED,
-            search_query=query,
+        return JSONResponse(
+            content={
+                "query": query,
+                "count": 0,
+                "results": [],
+                "html": "<p class='search-no-results'>Search will be available once the index is built.</p>",
+            }
         )
-        return HTMLResponse(content=full_html)
 
-    # Execute search
     try:
         from .mcp import search_docs
-        from .mcp.search import format_search_results
 
         results = search_docs(query=query)
     except RuntimeError as e:
         logger.warning(f"Search failed: {e}")
-        content_html = "<p>Search will be available once the index is built.</p>"
-        full_html = create_html_template(
-            content_html,
-            title="Search - Documentation",
-            current_path="/search",
-            navigation=navigation,
-            topbar_sections=topbar_sections,
-            toc_items=[],
-            show_search=settings.MCP_ENABLED,
-            search_query=query,
+        return JSONResponse(
+            content={
+                "query": query,
+                "count": 0,
+                "results": [],
+                "html": "<p class='search-no-results'>Search will be available once the index is built.</p>",
+            }
         )
-        return HTMLResponse(content=full_html)
 
-    # No results
-    if not results:
-        content_html = f"<p>No results found for '{query}'</p>"
-        full_html = create_html_template(
-            content_html,
-            title="Search - Documentation",
-            current_path="/search",
-            navigation=navigation,
-            topbar_sections=topbar_sections,
-            toc_items=[],
-            show_search=settings.MCP_ENABLED,
-            search_query=query,
-        )
-        return HTMLResponse(content=full_html)
+    # Build JSON payload with pre-rendered HTML fragment
+    results_html = format_search_results_human(results, query)
+    results_data = [
+        {
+            "title": r.title,
+            "path": r.path,
+            "url": path_to_doc_url(r.path),
+            "snippet": r.snippet,
+            "score": round(r.score, 2),
+            "category": r.category,
+        }
+        for r in results
+    ]
+    return JSONResponse(
+        content={
+            "query": query,
+            "count": len(results),
+            "results": results_data,
+            "html": results_html,
+        }
+    )
 
-    # Convert format_search_results output to HTML with doc links
-    formatted = format_search_results(results)
 
-    # Replace `path` with markdown links so paths become clickable
-    def replace_path_link(match: re.Match) -> str:
-        path = match.group(1)
-        url = path_to_doc_url(path)
-        return f"[{path}]({url})"
+async def _search_html_response(query: str) -> HTMLResponse | RedirectResponse:
+    """Return the full search page with searchbar + searchresults layout."""
+    navigation = parse_sidebar_navigation()
+    topbar_sections = parse_topbar_links()
 
-    formatted_with_links = re.sub(r"`([^`]+\.md)`", replace_path_link, formatted)
-    content_html = await render_markdown_to_html(formatted_with_links, settings.DOCS_ROOT / "index.md")
-    content_html = highlight_search_terms(content_html, query)
+    # Determine results HTML fragment
+    results_html = ""
+    unavailable_msg = "<p class='search-no-results'>Search will be available once the index is built.</p>"
+
+    if not settings.MCP_ENABLED:
+        results_html = unavailable_msg
+    elif query:
+        try:
+            from .mcp import get_index_manager
+
+            manager = get_index_manager()
+            if not manager.is_initialized:
+                results_html = unavailable_msg
+            else:
+                from .mcp import search_docs
+
+                results = search_docs(query=query)
+                results_html = format_search_results_human(results, query)
+        except RuntimeError as e:
+            logger.warning(f"Search failed: {e}")
+            results_html = unavailable_msg
+        except Exception as e:
+            logger.warning(f"Search index check failed: {e}")
+            results_html = unavailable_msg
+
+    # Build the search page content: searchbar div + searchresults div
+    import html as html_mod
+
+    safe_query = html_mod.escape(query, quote=True) if query else ""
+    content_html = f"""<div class="search-page">
+    <form action="/search" method="GET" class="search-page-form" id="search-page-form">
+        <span class="search-input-wrap">
+            <input type="text" name="q" placeholder="Search documentation..." value="{safe_query}"
+                   class="search-input" id="search-page-input" autocomplete="off" autofocus>
+        </span>
+        <button type="submit" class="search-page-btn">Search</button>
+    </form>
+    <div class="search-page-results" id="search-page-results">
+        {results_html}
+    </div>
+</div>"""
+
+    title = f"Search: {query} - Documentation" if query else "Search - Documentation"
     full_html = create_html_template(
         content_html,
-        title=f"Search: {query} - Documentation",
+        title=title,
         current_path="/search",
         navigation=navigation,
         topbar_sections=topbar_sections,
         toc_items=[],
         show_search=settings.MCP_ENABLED,
         search_query=query,
+        is_search_page=True,
     )
     return HTMLResponse(content=full_html)
 

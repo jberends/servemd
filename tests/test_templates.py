@@ -242,3 +242,18 @@ def test_create_html_template_search_bar_with_topbar():
 
     assert "/search" in result and "action=" in result
     assert "GitHub" in result
+
+
+def test_create_html_template_i_lucide_icon():
+    """Test that i-lucide-star uses Iconify CDN (Nuxt UI compatible)"""
+    from docs_server.templates import create_html_template
+
+    content = "<p>Content</p>"
+    topbar_sections = {
+        "left": [],
+        "middle": [],
+        "right": [{"type": "search", "params": {"icon": "i-lucide-star"}}],
+    }
+    result = create_html_template(content, topbar_sections=topbar_sections, show_search=True)
+
+    assert "api.iconify.design/lucide/star.svg" in result

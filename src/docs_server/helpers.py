@@ -24,6 +24,62 @@ def path_to_doc_url(path: str) -> str:
     return "/" + path.lstrip("/")
 
 
+def _strip_whoosh_highlight_html(text: str) -> str:
+    """Remove Whoosh highlight tags (<b class='match term0'>...</b>) to get plain text."""
+    return re.sub(r"</?b[^>]*>", "", text)
+
+
+def format_search_results_human(results: list[Any], query: str = "") -> str:
+    """
+    Format search results as human-readable HTML cards.
+
+    Each result is rendered as a card with title (linked), path breadcrumb,
+    snippet, and score badge. The output is a self-contained HTML fragment
+    suitable for injection into the search page results div.
+
+    Args:
+        results: List of SearchResult objects (path, title, snippet, score, category).
+        query: The original search query (used for highlighting).
+
+    Returns:
+        HTML string with result cards, or a "no results" message.
+    """
+    from html import escape as html_escape
+
+    if not results:
+        safe_q = html_escape(query) if query else ""
+        if safe_q:
+            return f"<p class='search-no-results'>No results found for &lsquo;{safe_q}&rsquo;</p>"
+        return "<p class='search-no-results'>Enter a search term to find documentation.</p>"
+
+    count = len(results)
+    parts: list[str] = [f"<p class='search-result-count'>Found {count} result{'s' if count != 1 else ''}:</p>"]
+
+    for result in results:
+        url = path_to_doc_url(result.path)
+        safe_title = html_escape(result.title)
+        safe_path = html_escape(result.path)
+        # Strip Whoosh HTML, escape, then we apply our own highlight
+        plain_snippet = _strip_whoosh_highlight_html(result.snippet) if result.snippet else ""
+        safe_snippet = html_escape(plain_snippet) if plain_snippet else ""
+        safe_category = html_escape(result.category) if result.category else ""
+
+        card = "<div class='search-result-card'>"
+        card += f"<a href='{url}' class='search-result-title'>{safe_title}</a>"
+        if safe_category:
+            card += f"<span class='search-result-category'>{safe_category}</span>"
+        card += f"<span class='search-result-path'>{safe_path}</span>"
+        if safe_snippet:
+            card += f"<p class='search-result-snippet'>{safe_snippet}</p>"
+        card += "</div>"
+        parts.append(card)
+
+    html_out = "\n".join(parts)
+    if query:
+        html_out = highlight_search_terms(html_out, query)
+    return html_out
+
+
 def highlight_search_terms(html: str, query: str) -> str:
     """
     Wrap search term matches in <mark class="search-highlight"> for pale yellow highlighting.
