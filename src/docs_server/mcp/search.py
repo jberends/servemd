@@ -9,6 +9,7 @@ with FuzzyTermPlugin for typo tolerance.
 from __future__ import annotations
 
 import logging
+import re
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
@@ -21,6 +22,18 @@ if TYPE_CHECKING:
     pass
 
 logger = logging.getLogger(__name__)
+
+
+def _sanitize_for_log(value: str) -> str:
+    """
+    Replace control characters and newlines to prevent log injection.
+
+    User-provided values (e.g. search query) must not be logged raw, as they
+    can contain newlines or control chars that forge log entries.
+    """
+    if not value:
+        return value
+    return re.sub(r"[\n\r\x00-\x1f\x7f-\x9f]", " ", value)
 
 
 @dataclass
@@ -109,11 +122,14 @@ def search_docs(query: str, limit: int | None = None) -> list[SearchResult]:
                     )
                 )
 
-        logger.info(f"Search '{query}' returned {len(results)} results")
+        logger.info(f"Search '{_sanitize_for_log(query)}' returned {len(results)} results")
         return results
 
     except Exception as e:
-        logger.error(f"Search error for query '{query}': {e}", exc_info=True)
+        logger.error(
+            f"Search error for query '{_sanitize_for_log(query)}': {_sanitize_for_log(str(e))}",
+            exc_info=True,
+        )
         raise RuntimeError(f"Search failed: {e}") from e
 
 

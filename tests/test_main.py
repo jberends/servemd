@@ -7,7 +7,6 @@ import sys
 from unittest.mock import patch
 
 
-
 def test_main_calls_clear_cache_when_flag_passed():
     """Test that main() calls settings.clear_cache() when --clear-cache is passed"""
     with (

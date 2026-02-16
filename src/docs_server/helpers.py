@@ -84,12 +84,26 @@ def highlight_search_terms(html: str, query: str) -> str:
     """
     Wrap search term matches in <mark class="search-highlight"> for pale yellow highlighting.
     Matches case-insensitively (e.g. q=mcp highlights both "MCP" and "mcp").
+    Only highlights in text content, not inside HTML tags (avoids breaking structure when
+    searching for terms like "div" or "span").
     """
     if not query or not query.strip():
         return html
     term = query.strip()
     pattern = re.compile(re.escape(term), re.IGNORECASE)
-    return pattern.sub(lambda m: f'<mark class="search-highlight">{m.group(0)}</mark>', html)
+
+    def replacer(match: re.Match[str]) -> str:
+        return f'<mark class="search-highlight">{match.group(0)}</mark>'
+
+    # Split by HTML tags; only apply highlighting to text content, not inside <...>
+    parts = re.split(r"(<[^>]+>)", html)
+    result = []
+    for part in parts:
+        if part.startswith("<") and part.endswith(">"):
+            result.append(part)
+        else:
+            result.append(pattern.sub(replacer, part))
+    return "".join(result)
 
 
 def is_safe_path(path: str, base_path: Path) -> bool:

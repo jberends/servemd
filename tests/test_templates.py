@@ -295,6 +295,34 @@ def test_create_html_template_search_mode_input():
     assert "search-input-trailing" not in search_section
 
 
+def test_create_html_template_search_params_xss_safe():
+    """Search params (mode, placeholder) from topbar.md must not allow XSS injection."""
+    from docs_server.templates import create_html_template
+
+    content = "<p>Content</p>"
+    topbar_sections = {
+        "left": [],
+        "middle": [],
+        "right": [
+            {
+                "type": "search",
+                "params": {
+                    "mode": "full' onload='alert(1)",
+                    "placeholder": "Search' onclick='alert(1)",
+                },
+            }
+        ],
+    }
+    result = create_html_template(content, topbar_sections=topbar_sections, show_search=True)
+
+    # Mode must be sanitized to valid value (malicious mode ignored)
+    assert "data-search-mode='full'" in result
+    # Must not have attribute breakout: ' onload=' as separate attribute
+    assert "' onload='" not in result
+    # Placeholder must be escaped (quotes as &#x27;)
+    assert "&#x27;" in result
+
+
 def test_create_html_template_search_custom_svg(tmp_path, monkeypatch):
     """Test that custom SVG from DOCS_ROOT is used when path is safe."""
     from docs_server import config

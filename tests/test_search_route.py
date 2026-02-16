@@ -8,8 +8,6 @@ Tests cover:
 - Empty results → "No results found"
 """
 
-import tempfile
-from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 import pytest

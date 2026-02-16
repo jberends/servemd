@@ -63,8 +63,9 @@ def create_html_template(
     def _render_search_bar(params: dict[str, str] | None) -> str:
         """Build search bar HTML with optional icon/mode/placeholder params."""
         p = params or {}
-        mode = p.get("mode", "full")
-        placeholder = p.get("placeholder", "Search...")
+        mode_raw = p.get("mode", "full")
+        mode = mode_raw if mode_raw in ("full", "button", "input") else "full"
+        placeholder = html.escape(p.get("placeholder", "Search..."), quote=True)
         icon_name = p.get("icon", "lucide-search")
         if icon_name.startswith("i-lucide-"):
             icon_svg = _iconify_img("lucide", icon_name[9:], 18, 18)
@@ -79,16 +80,17 @@ def create_html_template(
         else:
             icon_path = icon_name.strip()
             if icon_path and is_safe_path(icon_path, settings.DOCS_ROOT):
-                icon_svg = f"<img src='/{icon_path.lstrip('/')}' alt='' class='search-icon-img' width='18' height='18'>"
+                safe_path = html.escape(icon_path.lstrip("/"), quote=True)
+                icon_svg = f"<img src='/{safe_path}' alt='' class='search-icon-img' width='18' height='18'>"
             else:
                 icon_svg = LUCIDE_SEARCH_SVG
         search_value = html.escape(search_query, quote=True)
         # full = always show input + trailing icon (not expandable)
         # button = icon only, tap to expand
         # input = input only, no icon
-        always_open = mode in ("full", "input")
-        show_toggle = mode == "button"
-        show_trailing_icon = mode in ("full", "button")
+        always_open = mode_raw in ("full", "input")
+        show_toggle = mode_raw == "button"
+        show_trailing_icon = mode_raw in ("full", "button")
         out = f"<div class='search-bar-wrapper' data-search-mode='{mode}'>"
         if show_toggle:
             out += "<button type='button' class='search-toggle' aria-label='Open search' title='Search (/)'>"
@@ -97,7 +99,7 @@ def create_html_template(
         open_class = " is-open" if (search_query or always_open) else ""
         out += f"<form action='/search' method='GET' class='search-form{open_class}' id='topbar-search-form'>"
         out += "<span class='search-input-wrap'>"
-        out += f'<input type="text" name="q" placeholder="{html.escape(placeholder)}" value="{search_value}" class="search-input" id="topbar-search-input" autocomplete="off" role="searchbox">'
+        out += f'<input type="text" name="q" placeholder="{placeholder}" value="{search_value}" class="search-input" id="topbar-search-input" autocomplete="off" role="searchbox">'
         if show_trailing_icon:
             out += "<span class='search-input-trailing'>" + icon_svg + "</span>"
         out += "</span></form></div>"

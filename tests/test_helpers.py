@@ -32,6 +32,19 @@ def test_highlight_search_terms():
     assert result_ws == html
 
 
+def test_highlight_search_terms_does_not_modify_html_tags():
+    """Search terms matching tag names (div, span) must not break HTML structure."""
+    from docs_server.helpers import highlight_search_terms
+
+    html = '<div class="search-result-card"><span>div and span are HTML elements</span></div>'
+    result = highlight_search_terms(html, "div")
+    # Tag names must remain intact
+    assert "<div" in result
+    assert "</div>" in result
+    # Text content "div" should be highlighted
+    assert '<mark class="search-highlight">div</mark>' in result
+
+
 def test_path_to_doc_url():
     """Test path_to_doc_url converts SearchResult.path to doc URL."""
     from docs_server.helpers import path_to_doc_url
