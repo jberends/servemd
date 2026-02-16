@@ -136,6 +136,15 @@ Top bar with left/middle/right sections:
 - `## middle` - Center (optional, breadcrumbs)
 - `## right` - Right side (external links, social)
 
+**Placeholders** (double braces so `{logo}` displays literally elsewhere):
+
+| Tag | Syntax | Purpose |
+|-----|--------|---------|
+| `{{logo}}` | `* {{logo}} \| [Home](index.md)` | Logo + link in left section |
+| `{{search}}` | `* {{search}}` or `* {{search:icon=...,mode=...,placeholder=...}}` | Search bar (MCP search when enabled) |
+
+See [Navigation Features](features/navigation.md) for all `{{search}}` options: `icon` (lucide-search, lucide-x, custom SVG), `mode` (full, button, input), `placeholder`.
+
 ---
 
 ## Optional Files

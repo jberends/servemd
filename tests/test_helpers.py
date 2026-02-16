@@ -8,6 +8,21 @@ from pathlib import Path
 import pytest
 
 
+def test_highlight_search_terms():
+    """Test search term highlighting wraps matches in mark tags case-insensitively."""
+    from docs_server.helpers import highlight_search_terms
+
+    html = "<p>MCP enables LLM integration. Use mcp for search.</p>"
+    result = highlight_search_terms(html, "mcp")
+    assert '<mark class="search-highlight">MCP</mark>' in result
+    assert '<mark class="search-highlight">mcp</mark>' in result
+    assert "MCP enables" not in result  # Original text replaced
+    result_empty = highlight_search_terms(html, "")
+    assert result_empty == html
+    result_ws = highlight_search_terms(html, "   ")
+    assert result_ws == html
+
+
 def test_path_to_doc_url():
     """Test path_to_doc_url converts SearchResult.path to doc URL."""
     from docs_server.helpers import path_to_doc_url
@@ -160,7 +175,7 @@ def test_parse_topbar_links_with_content(tmp_path, monkeypatch):
     topbar_content = """# Topbar Navigation
 
 ## left
-* {logo} | [Home](index.md)
+* {{logo}} | [Home](index.md)
 * [Docs](docs.md)
 
 ## right
@@ -193,6 +208,56 @@ def test_parse_topbar_links_with_content(tmp_path, monkeypatch):
     assert len(result["right"]) == 2
     assert result["right"][0]["type"] == "link"
     assert result["right"][1]["type"] == "text"
+
+
+def test_parse_topbar_links_with_search_placeholder(tmp_path, monkeypatch):
+    """Test topbar parsing with {search} placeholder and params."""
+    from docs_server import config
+    from docs_server.helpers import parse_topbar_links
+
+    topbar_content = """# Top Bar
+
+## right
+* [GitHub](https://github.com/project)
+* {{search}}
+* [Docker](https://hub.docker.com)
+"""
+    topbar_file = tmp_path / "topbar.md"
+    topbar_file.write_text(topbar_content)
+
+    monkeypatch.setattr(config.settings, "DOCS_ROOT", tmp_path)
+
+    result = parse_topbar_links()
+
+    assert len(result["right"]) == 3
+    assert result["right"][0]["type"] == "link"
+    assert result["right"][1]["type"] == "search"
+    assert result["right"][1]["params"] == {}
+    assert result["right"][2]["type"] == "link"
+
+
+def test_parse_topbar_links_search_with_params(tmp_path, monkeypatch):
+    """Test topbar parsing with {search:params} placeholder."""
+    from docs_server import config
+    from docs_server.helpers import parse_topbar_links
+
+    topbar_content = """# Top Bar
+
+## right
+* {{search:icon=lucide-search,mode=button,placeholder=Zoeken...}}
+"""
+    topbar_file = tmp_path / "topbar.md"
+    topbar_file.write_text(topbar_content)
+
+    monkeypatch.setattr(config.settings, "DOCS_ROOT", tmp_path)
+
+    result = parse_topbar_links()
+
+    assert len(result["right"]) == 1
+    assert result["right"][0]["type"] == "search"
+    assert result["right"][0]["params"]["icon"] == "lucide-search"
+    assert result["right"][0]["params"]["mode"] == "button"
+    assert result["right"][0]["params"]["placeholder"] == "Zoeken..."
 
 
 def test_parse_sidebar_navigation_no_file(tmp_path, monkeypatch):

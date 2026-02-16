@@ -6,6 +6,21 @@ Contains the main HTML template with embedded CSS.
 import html
 from typing import Any
 
+from .config import settings
+from .helpers import is_safe_path
+
+# Lucide icons (inline SVG) for search bar
+LUCIDE_SEARCH_SVG = (
+    "<svg xmlns='http://www.w3.org/2000/svg' width='18' height='18' viewBox='0 0 24 24' "
+    "fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'>"
+    "<circle cx='11' cy='11' r='8'/><path d='m21 21-4.35-4.35'/></svg>"
+)
+LUCIDE_X_SVG = (
+    "<svg xmlns='http://www.w3.org/2000/svg' width='18' height='18' viewBox='0 0 24 24' "
+    "fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'>"
+    "<path d='M18 6 6 18'/><path d='m6 6 12 12'/></svg>"
+)
+
 
 def create_html_template(
     content: str,
@@ -26,6 +41,52 @@ def create_html_template(
         topbar_sections = {"left": [], "middle": [], "right": []}
     if toc_items is None:
         toc_items = []
+
+    def _render_search_bar(params: dict[str, str] | None) -> str:
+        """Build search bar HTML with optional icon/mode/placeholder params."""
+        p = params or {}
+        mode = p.get("mode", "full")
+        placeholder = p.get("placeholder", "Search...")
+        icon_name = p.get("icon", "lucide-search")
+        if icon_name.startswith("lucide-"):
+            icon_svg = LUCIDE_X_SVG if icon_name == "lucide-x" else LUCIDE_SEARCH_SVG
+        else:
+            icon_path = icon_name.strip()
+            if icon_path and is_safe_path(icon_path, settings.DOCS_ROOT):
+                icon_svg = f"<img src='/{icon_path.lstrip('/')}' alt='' class='search-icon-img' width='18' height='18'>"
+            else:
+                icon_svg = LUCIDE_SEARCH_SVG
+        search_value = html.escape(search_query, quote=True)
+        # full = always show input + trailing icon (not expandable)
+        # button = icon only, tap to expand
+        # input = input only, no icon
+        always_open = mode in ("full", "input")
+        show_toggle = mode == "button"
+        show_trailing_icon = mode in ("full", "button")
+        out = f"<div class='search-bar-wrapper' data-search-mode='{mode}'>"
+        if show_toggle:
+            out += (
+                "<button type='button' class='search-toggle' aria-label='Open search' title='Search (/)'>"
+            )
+            out += icon_svg
+            out += "</button>"
+        open_class = " is-open" if (search_query or always_open) else ""
+        out += (
+            f"<form action='/search' method='GET' class='search-form{open_class}' id='topbar-search-form'>"
+        )
+        out += "<span class='search-input-wrap'>"
+        out += f'<input type="text" name="q" placeholder="{html.escape(placeholder)}" value="{search_value}" class="search-input" id="topbar-search-input" autocomplete="off" role="searchbox">'
+        if show_trailing_icon:
+            out += "<span class='search-input-trailing'>" + icon_svg + "</span>"
+        out += "</span></form></div>"
+        return out
+
+    def _has_search_placeholder() -> bool:
+        for section_items in topbar_sections.values():
+            for item in section_items:
+                if item.get("type") == "search":
+                    return True
+        return False
 
     # Generate sidebar HTML with Nuxt UI-style grouping
     sidebar_html = ""
@@ -103,6 +164,8 @@ def create_html_template(
                     topbar_html += (
                         f"<a href='{item['link']}' class='topbar-link{active_class}'{target_attr}>{item['title']}</a>"
                     )
+                elif item["type"] == "search" and show_search:
+                    topbar_html += _render_search_bar(item.get("params"))
             topbar_html += "</div>"
 
         # Middle section (for future breadcrumbs)
@@ -119,9 +182,11 @@ def create_html_template(
                     topbar_html += (
                         f"<a href='{item['link']}' class='topbar-link{active_class}'{target_attr}>{item['title']}</a>"
                     )
+                elif item["type"] == "search" and show_search:
+                    topbar_html += _render_search_bar(item.get("params"))
             topbar_html += "</div>"
 
-        # Right section (search bar at far right when show_search)
+        # Right section (search bar at {search} position or far right when no placeholder)
         if topbar_sections["right"] or show_search:
             topbar_html += "<div class='topbar-right'>"
             for item in topbar_sections["right"]:
@@ -135,29 +200,10 @@ def create_html_template(
                     topbar_html += (
                         f"<a href='{item['link']}' class='topbar-link{active_class}'{target_attr}>{item['title']}</a>"
                     )
-            if show_search:
-                search_value = html.escape(search_query, quote=True)
-                lucide_search_svg = (
-                    "<svg xmlns='http://www.w3.org/2000/svg' width='18' height='18' viewBox='0 0 24 24' "
-                    "fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'>"
-                    "<circle cx='11' cy='11' r='8'/><path d='m21 21-4.35-4.35'/></svg>"
-                )
-                topbar_html += "<div class='search-bar-wrapper'>"
-                topbar_html += (
-                    "<button type='button' class='search-toggle' aria-label='Open search' title='Search (/)'>"
-                )
-                topbar_html += lucide_search_svg
-                topbar_html += "</button>"
-                open_class = " is-open" if search_query else ""
-                topbar_html += (
-                    f"<form action='/search' method='GET' class='search-form{open_class}' id='topbar-search-form'>"
-                )
-                topbar_html += "<span class='search-input-wrap'>"
-                topbar_html += f'<input type="text" name="q" placeholder="Search..." value="{search_value}" class="search-input" id="topbar-search-input" autocomplete="off" role="searchbox">'
-                topbar_html += "<span class='search-input-trailing'>" + lucide_search_svg + "</span>"
-                topbar_html += "</span>"
-                topbar_html += "</form>"
-                topbar_html += "</div>"
+                elif item["type"] == "search" and show_search:
+                    topbar_html += _render_search_bar(item.get("params"))
+            if show_search and not _has_search_placeholder():
+                topbar_html += _render_search_bar(None)
             topbar_html += "</div>"
 
         topbar_html += "</div>"
@@ -201,19 +247,26 @@ def create_html_template(
 
     document.addEventListener('click', function(e) {
         var wrapper = document.querySelector('.search-bar-wrapper');
-        if (form.classList.contains('is-open') && wrapper && !wrapper.contains(e.target)) {
+        var mode = wrapper && wrapper.getAttribute('data-search-mode');
+        var alwaysOpen = mode === 'full' || mode === 'input';
+        if (!alwaysOpen && form.classList.contains('is-open') && wrapper && !wrapper.contains(e.target)) {
             setExpanded(false);
         }
     });
 
     document.addEventListener('keydown', function(e) {
+        var wrapper = document.querySelector('.search-bar-wrapper');
+        var mode = wrapper && wrapper.getAttribute('data-search-mode');
+        var alwaysOpen = mode === 'full' || mode === 'input';
         if (e.key === '/') {
             var tag = document.activeElement && document.activeElement.tagName.toLowerCase();
             if (tag === 'input' || tag === 'textarea') return;
             e.preventDefault();
             setExpanded(true);
         } else if (e.key === 'Escape') {
-            if (document.activeElement === input || form.classList.contains('is-open')) {
+            if (alwaysOpen) {
+                input.blur();
+            } else if (document.activeElement === input || form.classList.contains('is-open')) {
                 setExpanded(false);
             }
         }
@@ -863,6 +916,17 @@ def create_html_template(
             padding: 0 0.75rem;
             color: var(--color-gray-500);
             flex-shrink: 0;
+        }}
+
+        .search-icon-img {{
+            object-fit: contain;
+        }}
+
+        /* Search result highlighting (Phase 5) */
+        .search-highlight {{
+            background-color: #fefce8;
+            padding: 0 0.1em;
+            border-radius: 2px;
         }}
 
         .search-bar-wrapper:has(.search-form.is-open) .search-toggle {{

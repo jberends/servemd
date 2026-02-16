@@ -77,35 +77,35 @@ Redesign the search results page for human readability. Layout: topbar + sidebar
 
 ### Phase 5: Search Result Highlighting
 
-- [ ] When on `/search?q=mcp`, highlight all words containing the search term (e.g. "mcp", "MCP") in the results
-- [ ] Use a pale yellow highlight marker (`<mark>` or equivalent with custom CSS)
-- [ ] Match case-insensitively (e.g. `q=mcp` highlights both "MCP" and "mcp")
-- [ ] Apply to titles, snippets, and path text in the rendered search results
-- [ ] Add CSS class for highlight styling (e.g. `background: #fefce8` or similar pale yellow)
+- [x] When on `/search?q=mcp`, highlight all words containing the search term (e.g. "mcp", "MCP") in the results
+- [x] Use a pale yellow highlight marker (`<mark>` or equivalent with custom CSS)
+- [x] Match case-insensitively (e.g. `q=mcp` highlights both "MCP" and "mcp")
+- [x] Apply to titles, snippets, and path text in the rendered search results
+- [x] Add CSS class for highlight styling (e.g. `background: #fefce8` or similar pale yellow)
 
 ### Phase 6: Configurable Search Placement in topbar.md
 
 Place the search bar exactly where specified in `topbar.md` using a `{search}` placeholder. Support optional parameters for customization.
 
-- [ ] Parse `* {search}` or `* {search:params}` in topbar.md sections (left, middle, right)
-- [ ] When `{search}` present: render search bar at that position; when absent: default to far right of right section
-- [ ] **Parameters** (simple `key=value` after colon, e.g. `{search:icon=lucide-search}`):
+- [x] Parse `* {search}` or `* {search:params}` in topbar.md sections (left, middle, right)
+- [x] When `{search}` present: render search bar at that position; when absent: default to far right of right section
+- [x] **Parameters** (simple `key=value` after colon, e.g. `{search:icon=lucide-search}`):
   - `icon` – `lucide-<name>` (e.g. `lucide-search`) for Lucide icon, or path relative to DOCS_ROOT for custom SVG (e.g. `assets/search.svg`)
   - `mode` – `full` (input + icon, default), `button` (icon/button only, tap opens input), `input` (input only, no icon)
   - `placeholder` – override placeholder text (default: "Search...")
-- [ ] Lucide icons: embed inline SVG from known set (search, x, etc.) or document CDN approach; keep it simple
-- [ ] Custom SVG from DOCS_ROOT: validate path, prevent traversal; serve via `/assets/` or inline if small
-- [ ] Document in `docs/navigation.md` or topbar section
+- [x] Lucide icons: embed inline SVG from known set (search, x, etc.) or document CDN approach; keep it simple
+- [x] Custom SVG from DOCS_ROOT: validate path, prevent traversal; serve via `/assets/` or inline if small
+- [x] Document in `docs/navigation.md` or topbar section
 
 **Example topbar.md:**
 ```markdown
 ## right
 * [GitHub](https://github.com/...)
 * [Docker](https://hub.docker.com/...)
-* {search}
+* {{search}}
 ```
 
-Or with params: `* {search:icon=lucide-search,mode=button}`
+Or with params: `* {{search:icon=lucide-search,mode=button}}`
 
 ### Phase 7: Tests & Documentation
 
@@ -334,17 +334,17 @@ Note: Match whole words or substrings? User said "words containing" – so `q=mc
 
 ### K. Configurable search placement (Phase 6)
 
-**Syntax in topbar.md:**
+**Syntax in topbar.md** (double braces so `{search}` displays literally in docs):
 ```
-* {search}                    # Default: full input + icon at this position
-* {search:icon=lucide-search} # Lucide icon by name
-* {search:icon=assets/search.svg}  # Custom SVG from DOCS_ROOT
-* {search:mode=button}        # Icon/button only, tap opens input
-* {search:mode=input}         # Input only, no icon
-* {search:placeholder=Zoeken...}  # Custom placeholder
-* {search:icon=lucide-search,mode=button}  # Combined params
+* {{search}}                    # Default: full input + icon at this position
+* {{search:icon=lucide-search}} # Lucide icon by name
+* {{search:icon=assets/search.svg}}  # Custom SVG from DOCS_ROOT
+* {{search:mode=button}}        # Icon/button only, tap opens input
+* {{search:mode=input}}         # Input only, no icon
+* {{search:placeholder=Zoeken...}}  # Custom placeholder
+* {{search:icon=lucide-search,mode=button}}  # Combined params
 ```
 
-**Parser logic:** In `parse_topbar_links()`, when `item_text` matches `{search}` or `{search:...}`, append `{"type": "search", "params": {...}}` to current section. Params parsed from `key=value` pairs after `:`.
+**Parser logic:** In `parse_topbar_links()`, when `item_text` matches `{{search}}` or `{{search:...}}`, append `{"type": "search", "params": {...}}` to current section. Params parsed from `key=value` pairs after `:`.
 
 **Template logic:** When iterating topbar items, `elif item["type"] == "search"` renders the search bar with `item.get("params", {})` for icon/mode/placeholder overrides.

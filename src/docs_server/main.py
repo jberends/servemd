@@ -20,6 +20,7 @@ from .config import settings
 from .helpers import (
     extract_table_of_contents,
     get_file_path,
+    highlight_search_terms,
     parse_sidebar_navigation,
     parse_topbar_links,
     path_to_doc_url,
@@ -408,6 +409,7 @@ async def search_page(q: str = ""):
 
     formatted_with_links = re.sub(r"`([^`]+\.md)`", replace_path_link, formatted)
     content_html = await render_markdown_to_html(formatted_with_links, settings.DOCS_ROOT / "index.md")
+    content_html = highlight_search_terms(content_html, query)
     full_html = create_html_template(
         content_html,
         title=f"Search: {query} - Documentation",

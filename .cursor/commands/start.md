@@ -12,7 +12,9 @@ I want to start work on a task or feature. Please follow this workflow:
    - Note any ambiguities or dependencies
 
 2. **Branch Creation**: Create a new branch from main:
-   - Use format: `feature/<descriptive-name>` or `fix/<descriptive-name>` as appropriate
+   - Use format: `<issue-number>-<descriptive-name>` as appropriate
+   - The issue number is the number of the issue referencesby the user or issue tracker
+   - Base the new branch always on the default branch which can be found in the .git settings
    - Run: `git checkout -b <branch-name>`
    - Use kebab-case for the descriptive part (e.g., `feature/search-topbar`)
 
@@ -39,7 +41,8 @@ I want to start work on a task or feature. Please follow this workflow:
 6. **Return control**: Tell the user that the TODO file is ready for review, and they can say "go and implement" when ready to proceed.
 
 Remember:
-- Follow project conventions from @.cursorrules (Python 3.13+, FastAPI, uv, pytest, Ruff)
+- Follow project conventions from @.cursorrules
+- Follow the Zen of Python
 - Phases must be explicit (numbered/headed) with checkable `- [ ]` items under each
 - Do NOT implement code until explicitly asked
 

@@ -24,6 +24,18 @@ def path_to_doc_url(path: str) -> str:
     return "/" + path.lstrip("/")
 
 
+def highlight_search_terms(html: str, query: str) -> str:
+    """
+    Wrap search term matches in <mark class="search-highlight"> for pale yellow highlighting.
+    Matches case-insensitively (e.g. q=mcp highlights both "MCP" and "mcp").
+    """
+    if not query or not query.strip():
+        return html
+    term = query.strip()
+    pattern = re.compile(re.escape(term), re.IGNORECASE)
+    return pattern.sub(lambda m: f'<mark class="search-highlight">{m.group(0)}</mark>', html)
+
+
 def is_safe_path(path: str, base_path: Path) -> bool:
     """
     Validate that the requested path is within the allowed directory boundaries.
@@ -158,8 +170,8 @@ def parse_topbar_links() -> dict[str, list[dict[str, str]]]:
             if current_section and line.startswith("* "):
                 item_text = line[2:].strip()
 
-                # Handle special logo syntax: {logo} | [Home](index.html)
-                if item_text.startswith("{logo}"):
+                # Handle special logo syntax: {{logo}} | [Home](index.html)
+                if item_text.startswith("{{logo}}"):
                     # Extract the part after the pipe
                     if "|" in item_text:
                         after_pipe = item_text.split("|", 1)[1].strip()
@@ -178,6 +190,19 @@ def parse_topbar_links() -> dict[str, list[dict[str, str]]]:
                         # Just logo without pipe
                         sections[current_section].append({"type": "logo_only"})
                     logger.debug(f"Added logo item to {current_section}")
+
+                # Handle {{search}} or {{search:params}} placeholder
+                elif item_text == "{{search}}" or item_text.startswith("{{search:"):
+                    params: dict[str, str] = {}
+                    if ":" in item_text:
+                        params_str = item_text.split(":", 1)[1].rstrip("}}")
+                        for pair in params_str.split(","):
+                            pair = pair.strip()
+                            if "=" in pair:
+                                k, v = pair.split("=", 1)
+                                params[k.strip().lower()] = v.strip()
+                    sections[current_section].append({"type": "search", "params": params})
+                    logger.debug(f"Added search placeholder to {current_section} with params {params}")
 
                 # Handle regular markdown links: [Title](link)
                 elif "[" in item_text and "](" in item_text:
