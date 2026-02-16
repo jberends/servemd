@@ -6,7 +6,6 @@ Tests all aspects of Phase 6 requirements without requiring server to run.
 
 import re
 from pathlib import Path
-from typing import Optional
 
 
 # Simulate the functions from main.py

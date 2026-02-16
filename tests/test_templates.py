@@ -3,8 +3,6 @@ Unit tests for templates module.
 Tests HTML template generation.
 """
 
-import pytest
-
 
 def test_create_html_template_basic():
     """Test basic template generation"""

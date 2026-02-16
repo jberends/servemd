@@ -5,8 +5,6 @@ Tests utility functions and navigation parsing.
 
 from pathlib import Path
 
-import pytest
-
 
 def test_format_search_results_human_empty_no_query():
     """format_search_results_human with empty results and no query returns 'Enter a search term'."""

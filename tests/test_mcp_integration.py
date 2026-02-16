@@ -281,7 +281,6 @@ class TestMCPRateLimiting:
     async def test_rate_limit_error_format(self):
         """Rate limit error returns proper JSON-RPC format."""
         # This test uses mocking to simulate rate limit exceeded
-        from slowapi.errors import RateLimitExceeded
 
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
             # First verify normal requests work

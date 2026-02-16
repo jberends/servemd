@@ -11,18 +11,14 @@ Tests cover:
 """
 
 import json
-import shutil
-import tempfile
-from datetime import UTC, datetime, timezone
-from pathlib import Path
-from unittest.mock import MagicMock, patch
+from datetime import UTC, datetime
+from unittest.mock import patch
 
 import pytest
 
 from docs_server.mcp.indexer import (
     CacheMetadata,
     DocumentInfo,
-    SearchBackend,
     SearchIndexManager,
     WhooshSearchBackend,
     extract_category,

@@ -4,9 +4,6 @@ Tests Settings initialization and environment variable handling.
 """
 
 import os
-from pathlib import Path
-
-import pytest
 
 
 def test_settings_initialization():

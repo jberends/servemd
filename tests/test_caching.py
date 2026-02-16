@@ -3,8 +3,6 @@ Unit tests for caching module.
 Tests cache read/write operations for HTML and llms.txt files.
 """
 
-from pathlib import Path
-
 import pytest
 
 

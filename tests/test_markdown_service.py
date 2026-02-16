@@ -3,8 +3,6 @@ Unit tests for markdown_service module.
 Tests markdown-to-HTML rendering with extensions.
 """
 
-from pathlib import Path
-
 import pytest
 
 

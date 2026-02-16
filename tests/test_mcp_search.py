@@ -11,8 +11,6 @@ Tests cover:
 - Error handling
 """
 
-import tempfile
-from pathlib import Path
 from unittest.mock import patch
 
 import pytest
