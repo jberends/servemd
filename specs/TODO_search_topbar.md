@@ -4,7 +4,7 @@
 **Feature:** In-page search with search bar in topbar
 **Branch:** `feature-search-topbar`
 **Reference:** [GitHub Issue #6](https://github.com/jberends/servemd/issues/6)
-**Status:** Planning
+**Status:** Implementation (Phase 4 mobile collapse optional)
 **Last Updated:** 2026-02-16
 
 ---
@@ -97,16 +97,6 @@ Place the search bar exactly where specified in `topbar.md` using a `{search}` p
 - [x] Custom SVG from DOCS_ROOT: validate path, prevent traversal; serve via `/assets/` or inline if small
 - [x] Document in `docs/navigation.md` or topbar section
 
-**Example topbar.md:**
-```markdown
-## right
-* [GitHub](https://github.com/...)
-* [Docker](https://hub.docker.com/...)
-* {{search}}
-```
-
-Or with params: `* {{search:icon=lucide-search,mode=button}}`
-
 ### Phase 7: Tests & Documentation
 
 - [x] Unit tests: mock `search_docs`, assert `/search` returns HTML with results, empty query handling
@@ -123,18 +113,18 @@ Or with params: `* {{search:icon=lucide-search,mode=button}}`
 
 ## Success Criteria
 
-- [ ] Search bar visible in topbar (right section) when MCP enabled
-- [ ] Search results displayed in main content area
-- [ ] Sidebar and topbar remain visible during search
-- [ ] Results link to actual documentation pages
-- [ ] Reuses existing MCP search infrastructure (no new index)
-- [ ] Responsive on mobile/tablet/desktop (collapse to icon on mobile)
-- [ ] Keyboard shortcut `/` focuses search; `Escape` blurs
-- [ ] Empty query does nothing; empty results show clear message
-- [ ] Graceful fallback when index unavailable
-- [ ] Search terms highlighted in results (pale yellow marker)
-- [ ] Search page has in-page searchbar + searchresults layout; debounced live search (min 3 chars)
-- [ ] Search bar placement configurable via `{search}` in topbar.md (Phase 6)
+- [x] Search bar visible in topbar (right section) when MCP enabled
+- [x] Search results displayed in main content area
+- [x] Sidebar and topbar remain visible during search
+- [x] Results link to actual documentation pages
+- [x] Reuses existing MCP search infrastructure (no new index)
+- [ ] Responsive on mobile/tablet/desktop (collapse to icon on mobile) — use `{{search:mode=button}}` to enable
+- [x] Keyboard shortcut `/` focuses search; `Escape` blurs
+- [x] Empty query does nothing; empty results show clear message
+- [x] Graceful fallback when index unavailable
+- [x] Search terms highlighted in results (pale yellow marker)
+- [x] Search page has in-page searchbar + searchresults layout; debounced live search (min 3 chars)
+- [x] Search bar placement configurable via `{{search}}` in topbar.md (Phase 6)
 
 ---
 
@@ -162,189 +152,3 @@ Or with params: `* {{search:icon=lucide-search,mode=button}}`
 | `docs/api/endpoints.md` | Document `/search` |
 | `tests/test_search_route.py` | New test file (or `test_search.py`) |
 
----
-
-## Appendix: Code Examples & References
-
-### A. Route definition order (main.py)
-
-Routes are matched in definition order. The catch-all `/{path:path}` must come last:
-
-```python
-# main.py - Route order matters
-@app.get("/")
-async def root(): ...
-
-@app.get("/health")
-async def health_check(): ...
-
-@app.get("/search")  # ADD BEFORE catch-all
-async def search_page(q: str = ""): ...
-
-@app.get("/{path:path}")  # Catch-all last
-async def serve_content(path: str, request: Request): ...
-```
-
-### B. MCP search usage (mcp/search.py, mcp/tools.py)
-
-```python
-from docs_server.mcp import search_docs, SearchResult
-
-# search_docs returns list[SearchResult]
-results = search_docs(query="authentication", limit=10)
-
-# SearchResult fields: path, title, snippet, score, category
-# format_search_results for text output (MCP format)
-from docs_server.mcp.search import format_search_results
-formatted = format_search_results(results)
-```
-
-### C. Index availability check (mcp/indexer.py)
-
-```python
-from docs_server.mcp import get_index_manager
-
-manager = get_index_manager()
-if manager.is_initialized:
-    # Safe to call search_docs
-    results = search_docs(q)
-else:
-    # Show graceful fallback
-    pass
-```
-
-### D. Topbar right section injection (templates.py)
-
-Current topbar right renders items from `topbar_sections["right"]`. Each item has `type` and `title`/`link`. Add a new type `search`:
-
-```python
-# In topbar right section loop, before or after existing items:
-elif item["type"] == "search":
-    # Render search form
-    topbar_html += '<form action="/search" method="GET" class="search-form">'
-    topbar_html += '<input type="search" name="q" placeholder="Search..." value="">'
-    topbar_html += '</form>'
-```
-
-Alternatively, inject search form directly in template when `show_search=True`, without extending topbar.md parsing.
-
-### E. Path to doc URL conversion
-
-```python
-def path_to_doc_url(path: str) -> str:
-    """Convert SearchResult.path (e.g. features/mcp.md) to doc URL (/features/mcp.html)."""
-    if path.endswith(".md"):
-        path = path[:-3] + ".html"
-    return "/" + path.lstrip("/")
-```
-
-### F. create_html_template signature (templates.py)
-
-```python
-def create_html_template(
-    content: str,
-    title: str = "Documentation",
-    current_path: str = "",
-    navigation: list[dict[str, Any]] = None,
-    topbar_sections: dict[str, list[dict[str, str]]] = None,
-    toc_items: list[dict[str, str]] = None,
-) -> str:
-```
-
-For search page: pass `content` = rendered search results HTML, `title` = "Search results", `current_path` = "/search", `toc_items` = [] (no TOC on search page).
-
-### G. Search page layout (Phase 3)
-
-```
-┌─────────────────────────────────────────────────────────┐
-│ topbar (logo, links)                                    │
-├──────────────┬──────────────────────────────────────────┤
-│ sidebar      │ content                                  │
-│ (nav links)  │ ┌──────────────────────────────────────┐ │
-│              │ │ searchbar div                        │ │
-│              │ │ [search input........] [Search]      │ │
-│              │ └──────────────────────────────────────┘ │
-│              │ ┌──────────────────────────────────────┐ │
-│              │ │ searchresults div                    │ │
-│              │ │ (MCP results, markdown → HTML)       │ │
-│              │ └──────────────────────────────────────┘ │
-└──────────────┴──────────────────────────────────────────┘
-```
-
-- Searchbar: debounce 300ms, min 3 chars; fetches `/search.json?q=...` (or similar) and injects HTML into searchresults div
-- Searchresults: receives HTML fragment or full results; reuses `format_search_results` → markdown → HTML pipeline
-
-### H. initialized_index fixture (tests/test_mcp_tools.py)
-
-```python
-@pytest.fixture
-async def initialized_index(temp_docs_root, temp_cache_root):
-    """Create an initialized search index with test documents."""
-    with patch("docs_server.mcp.indexer.settings") as mock_settings:
-        mock_settings.DOCS_ROOT = temp_docs_root
-        mock_settings.CACHE_ROOT = temp_cache_root
-        ...
-        await manager.initialize(force_rebuild=True)
-        yield manager
-```
-
-Reuse this fixture in search route tests with `@pytest.mark.asyncio` and `async def test_search_returns_results(initialized_index):`.
-
-### I. format_search_results output (mcp/search.py)
-
-```
-Found 3 result(s):
-
-1. **MCP Support** (`features/mcp.md`)
-   Category: features
-   Score: 2.45
-   MCP enables LLM integration. Available tools: search_docs...
-
-2. **API Endpoints** (`api/endpoints.md`)
-   ...
-```
-
-Convert this markdown-style text to HTML (e.g. `markdown.markdown()` or simple regex for `**bold**` and links). For "untouched" iteration: use `format_search_results` output → convert to HTML with minimal processing (e.g. newlines to `<br>`, `**x**` to `<strong>x</strong>`).
-
-### J. Search term highlighting (Phase 5)
-
-When rendering search results, wrap matched terms in `<mark class="search-highlight">`:
-
-```python
-# After converting format_search_results to HTML, wrap search terms:
-import re
-def highlight_search_terms(html: str, query: str) -> str:
-    if not query or not query.strip():
-        return html
-    pattern = re.compile(re.escape(query.strip()), re.IGNORECASE)
-    return pattern.sub(lambda m: f'<mark class="search-highlight">{m.group(0)}</mark>', html)
-```
-
-CSS for pale yellow highlight:
-
-```css
-.search-highlight {
-    background-color: #fefce8;  /* pale yellow */
-    padding: 0 0.1em;
-    border-radius: 2px;
-}
-```
-
-Note: Match whole words or substrings? User said "words containing" – so `q=mcp` highlights "mcp", "MCP", "mcp-support" etc. Use `re.escape()` for safety with special regex chars.
-
-### K. Configurable search placement (Phase 6)
-
-**Syntax in topbar.md** (double braces so `{search}` displays literally in docs):
-```
-* {{search}}                    # Default: full input + icon at this position
-* {{search:icon=lucide-search}} # Lucide icon by name
-* {{search:icon=assets/search.svg}}  # Custom SVG from DOCS_ROOT
-* {{search:mode=button}}        # Icon/button only, tap opens input
-* {{search:mode=input}}         # Input only, no icon
-* {{search:placeholder=Zoeken...}}  # Custom placeholder
-* {{search:icon=lucide-search,mode=button}}  # Combined params
-```
-
-**Parser logic:** In `parse_topbar_links()`, when `item_text` matches `{{search}}` or `{{search:...}}`, append `{"type": "search", "params": {...}}` to current section. Params parsed from `key=value` pairs after `:`.
-
-**Template logic:** When iterating topbar items, `elif item["type"] == "search"` renders the search bar with `item.get("params", {})` for icon/mode/placeholder overrides.
