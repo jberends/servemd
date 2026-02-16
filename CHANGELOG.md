@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **"Powered by servemd" branding** - Configurable attribution in sidebar footer:
+  - `SERVEMD_BRANDING_ENABLED` env var (default: `true`); set to `false` for white-label deployments
+  - Sticky at bottom of sidebar with link to GitHub repo
+  - Hidden on mobile when sidebar is collapsed
 - **In-page search** - Human-readable search experience when MCP is enabled:
   - Search bar in topbar (configurable via `{{search}}` placeholder in `topbar.md`)
   - Search page at `/search?q=...` with live results as you type (debounced, min 3 characters)
@@ -21,6 +25,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Reduced padding/margins** - Tighter spacing throughout: sidebar, main content, typography (h1, h2, h3, p, lists, code blocks, tables, blockquotes), and "Powered by" area. Topbar unchanged.
 - **Docker container security hardening** - Significant security improvements to the Docker image:
   - Switched base image from Debian Trixie (testing) to Debian Bookworm (stable), reducing CVEs by ~40–57%
   - Container now runs as non-root `servemd` user (UID 1000) instead of root
