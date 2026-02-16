@@ -150,6 +150,47 @@ curl http://localhost:8080/llms-full.txt > all-docs.txt
 
 ---
 
+## Search Endpoint
+
+### `GET /search`
+
+Search documentation. Displays results in the main content area with sidebar and topbar. Requires MCP to be enabled (`MCP_ENABLED=true`).
+
+**Parameters:**
+- `q` — Search query (optional). Empty or whitespace-only shows the search page with no results.
+- `format` — Response format: omit for HTML page, `json` for JSON (used by client-side live search).
+
+**Response formats:**
+
+| Format | Use Case |
+|--------|----------|
+| HTML (default) | Full page with search bar and results |
+| JSON (`format=json`) | HTML fragment + metadata for AJAX/live search |
+
+**JSON response fields:**
+- `query` — The search query
+- `count` — Number of results
+- `results` — Array of `{title, path, url, snippet, score, category}`
+- `html` — Pre-rendered HTML fragment of results
+
+**Status Codes:**
+- `200 OK` — Search page or results returned
+
+**Example:**
+```bash
+# HTML search page
+curl "http://localhost:8080/search?q=configuration"
+
+# JSON (for client-side fetch)
+curl "http://localhost:8080/search?q=configuration&format=json"
+```
+
+**When index unavailable:** Shows "Search will be available once the index is built."
+
+**When no results:** Shows "No results found for 'query'."
+
+---
+
 ## Content Endpoints
 
 ### `GET /` (Root)
@@ -404,6 +445,7 @@ The server follows these URL patterns:
 /llms.txt                      → AI index
 /llms-full.txt                 → Full content
 /health                        → Health check
+/search?q=...                  → Search documentation (MCP required)
 ```
 
 ---

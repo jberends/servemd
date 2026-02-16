@@ -60,13 +60,13 @@ Harvest the existing MCP search capabilities to add an in-page search experience
 
 Redesign the search results page for human readability. Layout: topbar + sidebar + content (searchbar + searchresults). The in-page searchbar drives the results div dynamically.
 
-- [ ] Add `GET /search` page layout: topbar | sidebar | content (searchbar div + searchresults div)
-- [ ] **Searchbar div/component:** search input (pre-filled with current `q` from URL) + search button; responsive
-- [ ] **Searchresults div:** displays MCP search results converted from markdown to HTML; reuse `search_docs` + `format_search_results` pipeline
-- [ ] Searchbar updates searchresults div when user types: debounced 300ms, minimum 3 characters before search
-- [ ] Add API endpoint for client-side fetch (e.g. `GET /search.json?q=...` or `GET /search?q=...&format=json`) so the searchresults div can update without full page reload
-- [ ] Optimise search results markdown format for human readability (iterate interactively on `format_search_results` output or add `format_search_results_human()`)
-- [ ] Ensure MCP and human share the same underlying search; human page just presents results in a friendlier layout
+- [x] Add `GET /search` page layout: topbar | sidebar | content (searchbar div + searchresults div)
+- [x] **Searchbar div/component:** search input (pre-filled with current `q` from URL) + search button; responsive
+- [x] **Searchresults div:** displays MCP search results converted from markdown to HTML; reuse `search_docs` + `format_search_results` pipeline
+- [x] Searchbar updates searchresults div when user types: debounced 300ms, minimum 3 characters before search
+- [x] Add API endpoint for client-side fetch (e.g. `GET /search.json?q=...` or `GET /search?q=...&format=json`) so the searchresults div can update without full page reload
+- [x] Optimise search results markdown format for human readability (iterate interactively on `format_search_results` output or add `format_search_results_human()`)
+- [x] Ensure MCP and human share the same underlying search; human page just presents results in a friendlier layout
 
 ### Phase 4: Responsive & Keyboard Shortcuts
 
@@ -109,15 +109,15 @@ Or with params: `* {{search:icon=lucide-search,mode=button}}`
 
 ### Phase 7: Tests & Documentation
 
-- [ ] Unit tests: mock `search_docs`, assert `/search` returns HTML with results, empty query handling
-- [ ] Integration tests: use `initialized_index` fixture, hit `/search?q=health`, assert results in HTML
-- [ ] Test: index unavailable → graceful message
-- [ ] Test: empty results → "No results found"
-- [ ] Update `docs/features/mcp.md` or add `docs/features/search.md` with search usage
-- [ ] Update `docs/api/endpoints.md` with `/search` route
-- [ ] Document keyboard shortcut `/` in docs
-- [ ] Run `uv run ruff check src/ tests/` and `uv run ruff format src/ tests/`
-- [ ] Run `uv run pytest tests/ -v` – all tests pass
+- [x] Unit tests: mock `search_docs`, assert `/search` returns HTML with results, empty query handling
+- [x] Integration tests: use `initialized_index` fixture, hit `/search?q=health`, assert results in HTML
+- [x] Test: index unavailable → graceful message
+- [x] Test: empty results → "No results found"
+- [x] Update `docs/features/mcp.md` or add `docs/features/search.md` with search usage
+- [x] Update `docs/api/endpoints.md` with `/search` route
+- [x] Document keyboard shortcut `/` in docs
+- [x] Run `uv run ruff check src/ tests/` and `uv run ruff format src/ tests/`
+- [x] Run `uv run pytest tests/ -v` – all tests pass
 
 ---
 

@@ -159,6 +159,13 @@ When MCP search is enabled, place the search bar exactly where you want it using
 
 When `{{search}}` is present, the search bar renders at that position. When absent, it defaults to the far right of the right section.
 
+### Keyboard Shortcuts
+
+| Key | Action |
+|-----|--------|
+| `/` | Focus the search bar (ignored when focus is in an input or textarea) |
+| `Escape` | Blur the search input |
+
 ---
 
 ## Active State Highlighting

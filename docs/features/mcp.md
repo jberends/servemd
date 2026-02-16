@@ -53,6 +53,19 @@ curl -X POST http://localhost:8080/mcp \
   }'
 ```
 
+## In-Page Search (Human Users)
+
+When MCP is enabled, ServeMD adds an in-page search experience for human readers:
+
+- **Search bar** in the topbar (configurable via `{{search}}` in `topbar.md` — see [Navigation](navigation.html))
+- **Search page** at `/search?q=...` with live results as you type (debounced, min 3 characters)
+- **Keyboard shortcut** — press `/` to focus the search bar from anywhere (except when typing in an input)
+- **Escape** — blurs the search input
+
+Search uses the same Whoosh index as the MCP `search_docs` tool. Results show titles, snippets, and links to documentation pages. Search terms are highlighted in pale yellow.
+
+**Example:** Visit `http://localhost:8080/search?q=configuration` to search for "configuration".
+
 ## Available Tools
 
 ServeMD exposes three MCP tools:
