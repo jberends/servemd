@@ -180,6 +180,69 @@ class TestSearchRouteUnit:
 
 
 # =============================================================================
+# JSON SEARCH EDGE CASES
+# =============================================================================
+
+
+class TestSearchJsonEdgeCases:
+    """JSON format edge cases for /search?format=json."""
+
+    @pytest.mark.asyncio
+    async def test_search_json_empty_query_returns_empty(self, temp_docs_root):
+        """GET /search?format=json with empty q returns empty JSON payload."""
+        with patch("docs_server.main.settings") as mock_settings:
+            mock_settings.DOCS_ROOT = temp_docs_root
+            mock_settings.MCP_ENABLED = True
+
+            async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+                response = await client.get("/search?q=&format=json")
+                response_ws = await client.get("/search?q=   &format=json")
+
+        assert response.status_code == 200
+        assert response_ws.status_code == 200
+        data = response.json()
+        assert data == {"query": "", "count": 0, "results": [], "html": ""}
+
+    @pytest.mark.asyncio
+    async def test_search_json_mcp_disabled_returns_unavailable(self, temp_docs_root):
+        """GET /search?format=json when MCP disabled returns 'Search is not available'."""
+        with patch("docs_server.main.settings") as mock_settings:
+            mock_settings.DOCS_ROOT = temp_docs_root
+            mock_settings.MCP_ENABLED = False
+
+            async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+                response = await client.get("/search?q=test&format=json")
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["query"] == "test"
+        assert data["count"] == 0
+        assert "Search is not available" in data["html"]
+
+    @pytest.mark.asyncio
+    async def test_search_json_index_unavailable_returns_graceful_message(self, temp_docs_root):
+        """GET /search?format=json when index not initialized returns graceful message."""
+        with (
+            patch("docs_server.main.settings") as mock_settings,
+            patch("docs_server.mcp.get_index_manager") as mock_get_mgr,
+        ):
+            mock_settings.DOCS_ROOT = temp_docs_root
+            mock_settings.MCP_ENABLED = True
+            mock_mgr = MagicMock()
+            mock_mgr.is_initialized = False
+            mock_get_mgr.return_value = mock_mgr
+
+            async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+                response = await client.get("/search?q=health&format=json")
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["query"] == "health"
+        assert data["count"] == 0
+        assert "Search will be available once the index is built" in data["html"]
+
+
+# =============================================================================
 # INTEGRATION TESTS (real index)
 # =============================================================================
 

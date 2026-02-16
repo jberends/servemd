@@ -251,7 +251,7 @@ def parse_topbar_links() -> dict[str, list[dict[str, str]]]:
                 elif item_text == "{{search}}" or item_text.startswith("{{search:"):
                     params: dict[str, str] = {}
                     if ":" in item_text:
-                        params_str = item_text.split(":", 1)[1].rstrip("}}")
+                        params_str = item_text.split(":", 1)[1].removesuffix("}}")
                         for pair in params_str.split(","):
                             pair = pair.strip()
                             if "=" in pair:

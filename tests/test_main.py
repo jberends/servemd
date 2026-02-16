@@ -50,3 +50,4 @@ def test_main_parses_clear_cache_with_other_args():
             main()
 
         mock_settings.clear_cache.assert_called_once()
+        mock_uvicorn.assert_called_once()

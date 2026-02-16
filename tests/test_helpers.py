@@ -8,6 +8,15 @@ from pathlib import Path
 import pytest
 
 
+def test_format_search_results_human_empty_no_query():
+    """format_search_results_human with empty results and no query returns 'Enter a search term'."""
+    from docs_server.helpers import format_search_results_human
+
+    result = format_search_results_human([], "")
+    assert "Enter a search term to find documentation" in result
+    assert "search-no-results" in result
+
+
 def test_highlight_search_terms():
     """Test search term highlighting wraps matches in mark tags case-insensitively."""
     from docs_server.helpers import highlight_search_terms

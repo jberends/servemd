@@ -257,3 +257,61 @@ def test_create_html_template_i_lucide_icon():
     result = create_html_template(content, topbar_sections=topbar_sections, show_search=True)
 
     assert "api.iconify.design/lucide/star.svg" in result
+
+
+def test_create_html_template_search_mode_button():
+    """Test that mode=button renders search toggle (icon only, tap to expand)."""
+    from docs_server.templates import create_html_template
+
+    content = "<p>Content</p>"
+    topbar_sections = {
+        "left": [],
+        "middle": [],
+        "right": [{"type": "search", "params": {"mode": "button"}}],
+    }
+    result = create_html_template(content, topbar_sections=topbar_sections, show_search=True)
+
+    assert "search-toggle" in result
+    assert "data-search-mode='button'" in result
+    assert "aria-label='Open search'" in result
+
+
+def test_create_html_template_search_mode_input():
+    """Test that mode=input renders input only, no trailing icon."""
+    from docs_server.templates import create_html_template
+
+    content = "<p>Content</p>"
+    topbar_sections = {
+        "left": [],
+        "middle": [],
+        "right": [{"type": "search", "params": {"mode": "input"}}],
+    }
+    result = create_html_template(content, topbar_sections=topbar_sections, show_search=True)
+
+    assert "data-search-mode='input'" in result
+    assert 'name="q"' in result
+    # mode=input has no search-input-trailing (icon) span
+    search_section = result.split("data-search-mode='input'")[1].split("</form>")[0]
+    assert "search-input-trailing" not in search_section
+
+
+def test_create_html_template_search_custom_svg(tmp_path, monkeypatch):
+    """Test that custom SVG from DOCS_ROOT is used when path is safe."""
+    from docs_server import config
+    from docs_server.templates import create_html_template
+
+    assets_dir = tmp_path / "assets"
+    assets_dir.mkdir()
+    (assets_dir / "search.svg").write_text("<svg></svg>")
+
+    monkeypatch.setattr(config.settings, "DOCS_ROOT", tmp_path)
+
+    content = "<p>Content</p>"
+    topbar_sections = {
+        "left": [],
+        "middle": [],
+        "right": [{"type": "search", "params": {"icon": "assets/search.svg"}}],
+    }
+    result = create_html_template(content, topbar_sections=topbar_sections, show_search=True)
+
+    assert "/assets/search.svg" in result
