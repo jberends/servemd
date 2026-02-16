@@ -101,6 +101,23 @@ def test_markdown_extension_configs():
     assert settings.markdown_extension_configs["pymdownx.tasklist"]["custom_checkbox"] is True
 
 
+def test_servemd_branding_enabled_default_and_env(monkeypatch):
+    """Test SERVEMD_BRANDING_ENABLED default (true) and env override."""
+    from docs_server.config import Settings
+
+    monkeypatch.delenv("SERVEMD_BRANDING_ENABLED", raising=False)
+    settings = Settings()
+    assert settings.SERVEMD_BRANDING_ENABLED is True
+
+    monkeypatch.setenv("SERVEMD_BRANDING_ENABLED", "false")
+    settings = Settings()
+    assert settings.SERVEMD_BRANDING_ENABLED is False
+
+    monkeypatch.setenv("SERVEMD_BRANDING_ENABLED", "true")
+    settings = Settings()
+    assert settings.SERVEMD_BRANDING_ENABLED is True
+
+
 def test_debug_string_parsing():
     """Test DEBUG environment variable string parsing"""
     from docs_server.config import Settings

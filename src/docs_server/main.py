@@ -460,6 +460,7 @@ async def _search_html_response(query: str) -> HTMLResponse | RedirectResponse:
         show_search=settings.MCP_ENABLED,
         search_query=query,
         is_search_page=True,
+        show_branding=settings.SERVEMD_BRANDING_ENABLED,
     )
     return HTMLResponse(content=full_html)
 
@@ -513,6 +514,7 @@ async def serve_content(path: str, request: Request):
                 topbar_sections,
                 toc_items,
                 show_search=settings.MCP_ENABLED,
+                show_branding=settings.SERVEMD_BRANDING_ENABLED,
             )
 
             # Cache the rendered HTML
