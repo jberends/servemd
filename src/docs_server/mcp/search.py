@@ -24,16 +24,31 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
-def _sanitize_for_log(value: str) -> str:
+def _sanitize_for_log(value: str | None) -> str:
     """
     Replace control characters and newlines to prevent log injection.
 
     User-provided values (e.g. search query) must not be logged raw, as they
     can contain newlines or control chars that forge log entries.
+
+    This helper guarantees a single-line, printable string suitable for logs.
     """
-    if not value:
-        return value
-    return re.sub(r"[\n\r\x00-\x1f\x7f-\x9f]", " ", value)
+    if value is None:
+        return ""
+
+    # Ensure we are working with a string
+    if not isinstance(value, str):
+        try:
+            value = str(value)
+        except Exception:
+            # Fallback to a safe placeholder if string conversion fails
+            return "<non-string value>"
+
+    # Replace control characters (including newlines) with spaces
+    cleaned = re.sub(r"[\n\r\x00-\x1f\x7f-\x9f]", " ", value)
+    # Collapse repeated whitespace and trim ends to keep logs compact/readable
+    cleaned = re.sub(r"\s+", " ", cleaned).strip()
+    return cleaned
 
 
 @dataclass
