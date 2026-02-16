@@ -6,7 +6,6 @@ Tests CLI argument parsing and main() entry point behavior.
 import sys
 from unittest.mock import patch
 
-import pytest
 
 
 def test_main_calls_clear_cache_when_flag_passed():
