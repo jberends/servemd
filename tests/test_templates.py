@@ -157,7 +157,7 @@ def test_create_html_template_responsive_design():
 
     # Check for media queries
     assert "@media (max-width: 1200px)" in result
-    assert "@media (max-width: 768px)" in result
+    assert "@media (max-width: 1024px)" in result
 
 
 def test_create_html_template_empty_navigation():
@@ -441,3 +441,181 @@ def test_create_html_template_page_actions_without_h1():
     assert "page-actions" in result
     assert "content-header-actions" in result
     assert "<p>No heading here.</p>" in result
+
+
+def test_create_html_template_mobile_menu_hamburger_present():
+    """Hamburger button and mobile-menu div are present when topbar is rendered."""
+    from docs_server.templates import create_html_template
+
+    topbar_sections = {
+        "left": [{"type": "logo_link", "title": "Docs", "link": "/"}],
+        "middle": [],
+        "right": [{"type": "link", "title": "GitHub", "link": "https://github.com"}],
+    }
+    result = create_html_template("<p>Content</p>", topbar_sections=topbar_sections)
+
+    assert "mobile-menu-toggle" in result
+    assert "id='mobile-menu'" in result
+    assert "hamburger-bar" in result
+    assert "aria-controls='mobile-menu'" in result
+
+
+def test_create_html_template_mobile_menu_contains_topbar_links():
+    """Topbar links appear inside the mobile-menu div."""
+    from docs_server.templates import create_html_template
+
+    topbar_sections = {
+        "left": [{"type": "logo_link", "title": "MyDocs", "link": "/"}],
+        "middle": [],
+        "right": [
+            {"type": "link", "title": "API Reference", "link": "/api"},
+            {"type": "link", "title": "GitHub", "link": "https://github.com"},
+        ],
+    }
+    result = create_html_template("<p>Content</p>", topbar_sections=topbar_sections)
+
+    # Extract content after the mobile-menu opening tag
+    mobile_section = result.split("id='mobile-menu'")[1].split("</div>")[0]
+    assert "API Reference" in mobile_section
+    assert "GitHub" in mobile_section
+
+
+def test_create_html_template_mobile_menu_logo_excluded():
+    """Logo items are excluded from the mobile menu (already visible in topbar)."""
+    from docs_server.templates import create_html_template
+
+    topbar_sections = {
+        "left": [{"type": "logo_link", "title": "MyDocs", "link": "/"}],
+        "middle": [],
+        "right": [{"type": "link", "title": "Contact", "link": "/contact"}],
+    }
+    result = create_html_template("<p>Content</p>", topbar_sections=topbar_sections)
+
+    mobile_section = result.split("id='mobile-menu'")[1].split("</div>")[0]
+    # Logo should NOT appear again in the mobile menu
+    assert "topbar-logo-link" not in mobile_section
+    assert "topbar-logo-container" not in mobile_section
+
+
+def test_create_html_template_mobile_menu_search_present():
+    """Search bar is rendered inside the mobile menu when show_search=True."""
+    from docs_server.templates import create_html_template
+
+    topbar_sections = {
+        "left": [{"type": "logo_link", "title": "Docs", "link": "/"}],
+        "middle": [],
+        "right": [{"type": "link", "title": "Help", "link": "/help"}],
+    }
+    result = create_html_template("<p>Content</p>", topbar_sections=topbar_sections, show_search=True)
+
+    # Mobile menu has its own search form with mobile- prefix IDs
+    assert "id='mobile-search-form'" in result
+    assert 'id="mobile-search-input"' in result
+
+    mobile_section = result.split("id='mobile-menu'")[1]
+    mobile_form_pos = mobile_section.find("mobile-search-form")
+    assert mobile_form_pos != -1, "mobile search form must be inside mobile-menu"
+
+
+def test_create_html_template_mobile_menu_absent_when_no_topbar_and_no_nav():
+    """No hamburger or mobile menu when topbar is empty, search off, and no navigation."""
+    from docs_server.templates import create_html_template
+
+    topbar_sections = {"left": [], "middle": [], "right": []}
+    result = create_html_template(
+        "<p>Content</p>", topbar_sections=topbar_sections, show_search=False, navigation=[]
+    )
+
+    # The CSS rule name appears in the stylesheet, but the HTML element must not be rendered
+    assert "class='mobile-menu-toggle'" not in result
+    assert "id='mobile-menu'" not in result
+
+
+def test_create_html_template_mobile_menu_present_with_navigation_only():
+    """Hamburger and mobile menu are rendered even when topbar is empty but navigation exists."""
+    from docs_server.templates import create_html_template
+
+    navigation = [{"type": "link", "title": "Home", "link": "/"}]
+    result = create_html_template(
+        "<p>Content</p>",
+        topbar_sections={"left": [], "middle": [], "right": []},
+        show_search=False,
+        navigation=navigation,
+    )
+
+    assert "class='mobile-menu-toggle'" in result
+    assert "id='mobile-menu'" in result
+
+
+def test_create_html_template_mobile_menu_contains_sidebar_nav():
+    """Sidebar navigation items are rendered inside the mobile menu."""
+    from docs_server.templates import create_html_template
+
+    navigation = [
+        {"type": "link", "title": "Home", "link": "/"},
+        {
+            "type": "group_with_children",
+            "title": "Features",
+            "link": "/features/",
+            "children": [
+                {"title": "Search", "link": "/features/search.html"},
+                {"title": "MCP", "link": "/features/mcp.html"},
+            ],
+        },
+    ]
+    result = create_html_template("<p>Content</p>", navigation=navigation)
+
+    mobile_section = result.split("id='mobile-menu'")[1]
+    assert "Home" in mobile_section
+    assert "Features" in mobile_section
+    assert "Search" in mobile_section
+    assert "MCP" in mobile_section
+
+
+def test_create_html_template_mobile_menu_nav_before_topbar_links():
+    """Sidebar nav appears before topbar links in the mobile menu."""
+    from docs_server.templates import create_html_template
+
+    navigation = [{"type": "link", "title": "Home", "link": "/"}]
+    topbar_sections = {
+        "left": [],
+        "middle": [],
+        "right": [{"type": "link", "title": "GitHub", "link": "https://github.com"}],
+    }
+    result = create_html_template("<p>Content</p>", navigation=navigation, topbar_sections=topbar_sections)
+
+    mobile_section = result.split("id='mobile-menu'")[1]
+    nav_pos = mobile_section.find("mobile-menu-nav")
+    topbar_pos = mobile_section.find("mobile-menu-topbar-links")
+    assert nav_pos != -1
+    assert topbar_pos != -1
+    assert nav_pos < topbar_pos, "sidebar nav must appear before topbar links"
+
+
+def test_create_html_template_mobile_menu_script_present():
+    """Mobile menu JS is present when topbar is rendered."""
+    from docs_server.templates import create_html_template
+
+    topbar_sections = {
+        "left": [{"type": "logo_link", "title": "Docs", "link": "/"}],
+        "middle": [],
+        "right": [{"type": "link", "title": "Help", "link": "/help"}],
+    }
+    result = create_html_template("<p>Content</p>", topbar_sections=topbar_sections)
+
+    assert "mobile-menu-toggle" in result
+    assert "setMenuOpen" in result
+    assert "is-active" in result
+
+
+def test_create_html_template_mobile_css_included():
+    """Mobile hamburger and mobile-menu CSS rules are present."""
+    from docs_server.templates import create_html_template
+
+    result = create_html_template("<p>Content</p>")
+
+    assert ".mobile-menu-toggle" in result
+    assert ".hamburger-bar" in result
+    assert ".mobile-menu" in result
+
+
