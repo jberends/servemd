@@ -1,0 +1,539 @@
+#!/usr/bin/env python3
+"""
+ServeMD Release Script
+
+Handles version bumping and releasing for the ServeMD documentation server.
+Uses semantic versioning (MAJOR.MINOR.PATCH). Main branch is the default.
+
+Usage:
+    ./bin/release --interactive        # Interactive mode with smart suggestions
+    ./bin/release major --full-release # Complete release workflow
+    ./bin/release minor --commit --tag --push
+
+Version Scheme:
+    MAJOR.MINOR.PATCH - Semantic versioning (e.g. 1.2.3)
+    major: 1.0.0 -> 2.0.0
+    minor: 1.0.0 -> 1.1.0
+    patch: 1.0.0 -> 1.0.1
+"""
+
+import argparse
+import re
+import subprocess
+import sys
+from pathlib import Path
+
+# Project paths
+PROJECT_ROOT = Path(__file__).parent.parent
+VERSION_FILE = PROJECT_ROOT / "src" / "docs_server" / "__init__.py"
+CHANGELOG_FILE = PROJECT_ROOT / "CHANGELOG.md"
+GITHUB_REPO = "jberends/servemd"
+
+
+class VersionError(Exception):
+    """Exception raised for version-related errors."""
+
+    pass
+
+
+def run_command(cmd: list[str], check: bool = True) -> subprocess.CompletedProcess:
+    """Run a shell command and return the result."""
+    try:
+        result = subprocess.run(cmd, capture_output=True, text=True, check=check)
+        return result
+    except subprocess.CalledProcessError as e:
+        print(f"Command failed: {' '.join(cmd)}")
+        print(f"Error: {e.stderr}")
+        raise
+
+
+def get_current_version() -> str:
+    """Extract current version from __init__.py file."""
+    if not VERSION_FILE.exists():
+        raise VersionError(f"Version file not found: {VERSION_FILE}")
+
+    content = VERSION_FILE.read_text()
+    match = re.search(r'__version__\s*=\s*["\']([^"\']+)["\']', content)
+
+    if not match:
+        raise VersionError("Could not parse version from __init__.py")
+
+    return match.group(1)
+
+
+def parse_version(version: str) -> tuple[int, int, int]:
+    """
+    Parse semver string into components.
+
+    Returns:
+        Tuple of (major, minor, patch)
+    """
+    pattern = r"^(\d+)\.(\d+)\.(\d+)$"
+    match = re.match(pattern, version)
+
+    if not match:
+        raise VersionError(f"Invalid semver format: {version}")
+
+    return int(match.group(1)), int(match.group(2)), int(match.group(3))
+
+
+def format_version(major: int, minor: int, patch: int) -> str:
+    """Format version components back into version string."""
+    return f"{major}.{minor}.{patch}"
+
+
+def bump_version(current_version: str, bump_type: str) -> str:
+    """
+    Bump version according to the specified type.
+
+    Args:
+        current_version: Current version string
+        bump_type: 'major', 'minor', or 'patch'
+
+    Returns:
+        New version string
+    """
+    major, minor, patch = parse_version(current_version)
+
+    if bump_type == "major":
+        # Bump major, reset minor and patch
+        major += 1
+        minor = 0
+        patch = 0
+    elif bump_type == "minor":
+        # Bump minor, reset patch
+        minor += 1
+        patch = 0
+    elif bump_type == "patch":
+        # Bump patch
+        patch += 1
+    else:
+        raise VersionError(f"Invalid bump type: {bump_type}")
+
+    return format_version(major, minor, patch)
+
+
+def update_version_file(new_version: str) -> None:
+    """Update the __init__.py file with new version."""
+    content = VERSION_FILE.read_text()
+
+    new_content = re.sub(
+        r'(__version__\s*=\s*["\'])[^"\']+(["\'])',
+        rf"\g<1>{new_version}\g<2>",
+        content,
+    )
+
+    VERSION_FILE.write_text(new_content)
+    print(f"Updated {VERSION_FILE.relative_to(PROJECT_ROOT)} to version {new_version}")
+
+
+def update_changelog_links(new_version: str, previous_version: str) -> None:
+    """Update the compare links at the bottom of CHANGELOG.md."""
+    if not CHANGELOG_FILE.exists():
+        raise VersionError(f"Changelog file not found: {CHANGELOG_FILE}")
+
+    content = CHANGELOG_FILE.read_text()
+    base_url = f"https://github.com/{GITHUB_REPO}"
+
+    # Replace [Unreleased] to compare new_version...HEAD
+    new_unreleased = f"[Unreleased]: {base_url}/compare/v{new_version}...HEAD"
+    content = re.sub(
+        r"\[Unreleased\]:\s+https://[^\s]+",
+        new_unreleased,
+        content,
+    )
+
+    # Add new version link after [Unreleased] if not present
+    new_version_link = f"[{new_version}]: {base_url}/compare/v{previous_version}...v{new_version}"
+    if f"[{new_version}]:" not in content:
+        # Insert after [Unreleased] line
+        content = content.replace(
+            new_unreleased,
+            f"{new_unreleased}\n{new_version_link}",
+        )
+
+    CHANGELOG_FILE.write_text(content)
+    print(f"Updated changelog compare links for v{new_version}")
+
+
+def check_git_status() -> None:
+    """Check if git working directory is clean."""
+    result = run_command(["git", "status", "--porcelain"])
+
+    if result.stdout.strip():
+        print("Warning: Git working directory is not clean.")
+        print("Uncommitted changes:")
+        print(result.stdout)
+
+        response = input("Continue anyway? (y/N): ").lower()
+        if response not in ("y", "yes"):
+            sys.exit(1)
+
+
+def create_git_commit(version: str, include_changelog: bool = True) -> None:
+    """Create git commit for the new version."""
+    run_command(["git", "add", str(VERSION_FILE.relative_to(PROJECT_ROOT))])
+
+    if include_changelog:
+        run_command(["git", "add", str(CHANGELOG_FILE.relative_to(PROJECT_ROOT))])
+
+    result = run_command(["git", "diff", "--cached", "--quiet"], check=False)
+    if result.returncode == 0:
+        print(f"⚠️  No changes to commit - version {version} may already be set")
+        print(f"   Current version in {VERSION_FILE.name}: {get_current_version()}")
+        print("   Skipping commit creation")
+        return
+
+    commit_message = f"Release v{version}"
+    run_command(["git", "commit", "-m", commit_message])
+    print(f"Created git commit: {commit_message}")
+
+
+def create_git_tag(version: str) -> None:
+    """Create git tag for the new version."""
+    tag_name = f"v{version}"
+    run_command(["git", "tag", "-a", tag_name, "-m", f"Release v{version}"])
+    print(f"Created git tag: {tag_name}")
+
+
+def get_current_branch() -> str:
+    """Get the current git branch name."""
+    result = run_command(["git", "branch", "--show-current"])
+    return result.stdout.strip()
+
+
+def push_to_remote() -> None:
+    """Push commits and tags to remote repository."""
+    print("\nPushing to remote repository...")
+    current_branch = get_current_branch()
+
+    run_command(["git", "push", "origin", current_branch])
+    print(f"✅ Pushed {current_branch} to remote")
+
+    run_command(["git", "push", "--tags"])
+    print("✅ Pushed tags to remote")
+
+
+def propose_next_version(current_version: str) -> dict[str, dict[str, str]]:
+    """
+    Propose next version options based on semver.
+
+    Returns:
+        Dict with 'major', 'minor', 'patch' version suggestions and reasoning
+    """
+    major, minor, patch = parse_version(current_version)
+
+    return {
+        "major": {
+            "version": format_version(major + 1, 0, 0),
+            "reason": "Breaking changes",
+        },
+        "minor": {
+            "version": format_version(major, minor + 1, 0),
+            "reason": "New features, backwards compatible",
+        },
+        "patch": {
+            "version": format_version(major, minor, patch + 1),
+            "reason": "Bug fixes",
+        },
+    }
+
+
+def interactive_version_selection() -> tuple[str, str]:
+    """Interactive version selection with smart proposals."""
+    current_version = get_current_version()
+    proposals = propose_next_version(current_version)
+
+    print(f"\nCurrent version: {current_version}")
+    print("\nSuggested versions:")
+
+    for i, (bump_type, info) in enumerate(proposals.items(), 1):
+        print(f"{i}. {bump_type.upper()}: {info['version']} - {info['reason']}")
+
+    print("4. Custom version")
+
+    while True:
+        choice = input("\nSelect version option (1-4): ").strip()
+
+        if choice == "1":
+            return proposals["major"]["version"], "major"
+        elif choice == "2":
+            return proposals["minor"]["version"], "minor"
+        elif choice == "3":
+            return proposals["patch"]["version"], "patch"
+        elif choice == "4":
+            custom = input("Enter custom version (MAJOR.MINOR.PATCH): ").strip()
+            try:
+                parse_version(custom)
+                return custom, "custom"
+            except VersionError as e:
+                print(f"Invalid version format: {e}")
+                continue
+        else:
+            print("Invalid choice. Please select 1-4.")
+
+
+def interactive_changelog_check(new_version: str) -> bool:
+    """
+    Ask user if they've already updated the changelog.
+
+    Returns:
+        True if changelog links should be skipped (user updated manually)
+    """
+    print("\n📝 Changelog Update")
+    print(f"Have you already updated {CHANGELOG_FILE.name} with version v{new_version}?")
+    print("(Includes version header AND compare links at bottom)")
+    response = input("(y/N): ").strip().lower()
+
+    skip_changelog = response in ("y", "yes")
+
+    if skip_changelog:
+        print("✓ Skipping changelog link update (already done manually)")
+    else:
+        print("✓ Will update changelog compare links")
+
+    return skip_changelog
+
+
+def interactive_workflow_selection() -> dict[str, bool]:
+    """Interactive workflow step selection."""
+    print("\nRelease workflow options:")
+    print("1. Update version only")
+    print("2. + Update changelog links")
+    print("3. + Create git commit")
+    print("4. + Create git tag")
+    print("5. + Push to remote")
+    print("6. Full release (all steps)")
+
+    while True:
+        choice = input("\nSelect workflow (1-6): ").strip()
+
+        workflows = {
+            "1": {"changelog": False, "commit": False, "tag": False, "push": False},
+            "2": {"changelog": True, "commit": False, "tag": False, "push": False},
+            "3": {"changelog": True, "commit": True, "tag": False, "push": False},
+            "4": {"changelog": True, "commit": True, "tag": True, "push": False},
+            "5": {"changelog": True, "commit": True, "tag": True, "push": True},
+            "6": {"changelog": True, "commit": True, "tag": True, "push": True},
+        }
+
+        if choice in workflows:
+            return workflows[choice]
+        else:
+            print("Invalid choice. Please select 1-6.")
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser(
+        description="Release script for ServeMD documentation server",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""
+Release Workflow Examples:
+
+  # Interactive mode with smart version suggestions
+  ./bin/release --interactive
+
+  # Traditional explicit version bumping
+  ./bin/release minor --commit --tag --push
+
+  # Step-by-step release process
+  ./bin/release minor                    # 1. Update version
+  ./bin/release minor --commit           # 2. + Update changelog links, create commit
+  ./bin/release minor --tag              # 3. + Create git tag
+  ./bin/release minor --push             # 4. + Push to remote
+
+  # Full release in one command
+  ./bin/release minor --full-release
+
+  # Preview mode
+  ./bin/release --dry-run minor --full-release
+
+Changelog Management:
+
+  # Run release with pre-updated changelog (skip link updates)
+  ./bin/release minor --skip-changelog --full-release
+
+  # Interactive mode will ask if changelog is already updated
+
+Version bumping examples:
+  major:  1.0.0 -> 2.0.0
+  minor:  1.0.0 -> 1.1.0
+  patch:  1.0.0 -> 1.0.1
+        """,
+    )
+
+    version_group = parser.add_mutually_exclusive_group()
+    version_group.add_argument(
+        "bump_type",
+        nargs="?",
+        choices=["major", "minor", "patch"],
+        help="Type of version bump to perform",
+    )
+    version_group.add_argument(
+        "--interactive",
+        "-i",
+        action="store_true",
+        help="Interactive mode with smart version suggestions",
+    )
+
+    parser.add_argument(
+        "--commit",
+        action="store_true",
+        help="Create git commit with version changes",
+    )
+
+    parser.add_argument(
+        "--tag",
+        action="store_true",
+        help="Create git tag (implies --commit)",
+    )
+
+    parser.add_argument(
+        "--push",
+        action="store_true",
+        help="Push to remote (implies --commit --tag)",
+    )
+
+    parser.add_argument(
+        "--skip-changelog",
+        action="store_true",
+        help="Skip changelog link updates (useful if manually updated)",
+    )
+
+    parser.add_argument(
+        "--full-release",
+        action="store_true",
+        help="Complete release: commit + tag + push",
+    )
+
+    parser.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Show what would be done without making changes",
+    )
+
+    args = parser.parse_args()
+
+    try:
+        skip_changelog = args.skip_changelog
+
+        if args.interactive:
+            new_version, bump_type = interactive_version_selection()
+            skip_changelog = interactive_changelog_check(new_version)
+            workflow = interactive_workflow_selection()
+
+            args.commit = workflow["commit"]
+            args.tag = workflow["tag"]
+            args.push = workflow["push"]
+            if workflow["changelog"]:
+                skip_changelog = False
+            args.bump_type = bump_type
+        else:
+            if not args.bump_type:
+                print("❌ Error: bump_type is required in non-interactive mode")
+                print("Use --interactive for guided mode or specify major/minor/patch")
+                sys.exit(1)
+
+            current_version = get_current_version()
+            new_version = bump_version(current_version, args.bump_type)
+
+        if args.full_release:
+            args.commit = True
+            args.tag = True
+            args.push = True
+
+        if args.tag:
+            args.commit = True
+        if args.push:
+            args.commit = True
+            args.tag = True
+
+        current_version = get_current_version()
+
+        print(f"Current version: {current_version}")
+        print(f"New version: {new_version}")
+
+        if args.dry_run:
+            print("\n[DRY RUN] Would perform the following actions:")
+            print(f"1. Update {VERSION_FILE.relative_to(PROJECT_ROOT)} to {new_version}")
+            if not skip_changelog:
+                print(f"2. Update changelog compare links at bottom of {CHANGELOG_FILE.name}")
+            else:
+                print("2. Skip changelog update (already done manually)")
+
+            step = 3
+            if args.commit:
+                print(f"{step}. Create git commit")
+                step += 1
+            if args.tag:
+                print(f"{step}. Create git tag v{new_version}")
+                step += 1
+            if args.push:
+                print(f"{step}. Push to remote")
+
+            return
+
+        if args.push and not args.commit:
+            print("❌ Error: --push requires --commit")
+            sys.exit(1)
+
+        if not args.interactive:
+            print("\nThis will:")
+            print(f"1. Update version from {current_version} to {new_version}")
+            if not skip_changelog:
+                print("2. Update changelog compare links")
+            else:
+                print("2. Skip changelog update (already done manually)")
+
+            step = 3
+            if args.commit:
+                print(f"{step}. Create git commit")
+                step += 1
+            if args.tag:
+                print(f"{step}. Create git tag v{new_version}")
+                step += 1
+            if args.push:
+                print(f"{step}. Push to remote")
+
+            response = input("\nProceed? (y/N): ").lower()
+            if response not in ("y", "yes"):
+                print("Cancelled.")
+                return
+
+        if args.commit:
+            check_git_status()
+
+        print("\n🚀 Starting release process...")
+
+        update_version_file(new_version)
+
+        if not skip_changelog:
+            update_changelog_links(new_version, current_version)
+        else:
+            print("Skipped changelog update (already done manually)")
+
+        if args.commit:
+            create_git_commit(new_version, include_changelog=not skip_changelog)
+
+        if args.tag:
+            create_git_tag(new_version)
+
+        if args.push:
+            push_to_remote()
+
+        print(f"\n✅ Successfully released version v{new_version}!")
+
+        if not args.push:
+            print("\nNext: Create GitHub release and push:")
+            print(f"  gh release create v{new_version} \\")
+            print(f"    --title 'v{new_version}' \\")
+            print(f"    --notes-file <(sed -n '/## v{new_version}/,/## v/p' CHANGELOG.md | head -n -1)")
+            print("  git push origin main --tags")
+
+    except (VersionError, subprocess.CalledProcessError, KeyboardInterrupt) as e:
+        print(f"\n❌ Release failed: {e}")
+        sys.exit(1)
+
+
+if __name__ == "__main__":
+    main()
