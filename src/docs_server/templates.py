@@ -119,7 +119,7 @@ def create_html_template(
     if toc_items is None:
         toc_items = []
 
-    def _render_search_bar(params: dict[str, str] | None) -> str:
+    def _render_search_bar(params: dict[str, str] | None, id_prefix: str = "topbar") -> str:
         """Build search bar HTML with optional icon/mode/placeholder params."""
         p = params or {}
         mode_raw = p.get("mode", "full")
@@ -156,9 +156,9 @@ def create_html_template(
             out += icon_svg
             out += "</button>"
         open_class = " is-open" if (search_query or always_open) else ""
-        out += f"<form action='/search' method='GET' class='search-form{open_class}' id='topbar-search-form'>"
+        out += f"<form action='/search' method='GET' class='search-form{open_class}' id='{id_prefix}-search-form'>"
         out += "<span class='search-input-wrap'>"
-        out += f'<input type="text" name="q" placeholder="{placeholder}" value="{search_value}" class="search-input" id="topbar-search-input" autocomplete="off" role="searchbox">'
+        out += f'<input type="text" name="q" placeholder="{placeholder}" value="{search_value}" class="search-input" id="{id_prefix}-search-input" autocomplete="off" role="searchbox">'
         if show_trailing_icon:
             out += "<span class='search-input-trailing'>" + icon_svg + "</span>"
         out += "</span></form></div>"
@@ -238,7 +238,7 @@ def create_html_template(
         sidebar_html += "</nav>"
 
     topbar_html = ""
-    if any(topbar_sections.values()) or show_search:  # If any section has items or search bar
+    if navigation or any(topbar_sections.values()) or show_search:
         topbar_html = "<div class='topbar'>"
 
         if topbar_sections["left"]:
@@ -259,7 +259,123 @@ def create_html_template(
                 topbar_html += _render_search_bar(None)
             topbar_html += "</div>"
 
+        topbar_html += (
+            "<button class='mobile-menu-toggle' aria-label='Open menu' "
+            "aria-expanded='false' aria-controls='mobile-menu'>"
+            "<span class='hamburger-bar'></span>"
+            "<span class='hamburger-bar'></span>"
+            "<span class='hamburger-bar'></span>"
+            "</button>"
+        )
         topbar_html += "</div>"
+
+    mobile_menu_html = ""
+    mobile_menu_script = ""
+    if navigation or any(topbar_sections.values()) or show_search:
+        mobile_menu_html = "<div id='mobile-menu' class='mobile-menu'>"
+
+        # 1. Sidebar navigation section
+        if navigation:
+            mobile_menu_html += "<div class='mobile-menu-nav'>"
+            for _section in navigation:
+                _stype = _section.get("type", "section")
+                if _stype == "link":
+                    _active = " active" if current_path == _section["link"] else ""
+                    mobile_menu_html += f"<div class='nav-group'><a href='{_section['link']}' class='nav-standalone-link{_active}'>{_section['title']}</a></div>"
+                elif _stype == "group_with_children":
+                    _active = " active" if current_path == _section["link"] else ""
+                    mobile_menu_html += "<div class='nav-group'>"
+                    mobile_menu_html += f"<a href='{_section['link']}' class='nav-group-header{_active}'>{_section['title']}</a>"
+                    mobile_menu_html += "<ul class='nav-group-links'>"
+                    for _child in _section.get("children", []):
+                        _cactive = " active" if current_path == _child["link"] else ""
+                        mobile_menu_html += f"<li class='nav-group-item{_cactive}'><a href='{_child['link']}' class='nav-group-link'>{_child['title']}</a></li>"
+                    mobile_menu_html += "</ul></div>"
+            mobile_menu_html += "</div>"
+
+        # 2. Topbar links section (excluding logos and search placeholder)
+        _skip_in_mobile = {"logo_link", "logo_text", "logo_only", "search"}
+        _topbar_items = [
+            _item
+            for _item in (
+                topbar_sections.get("left", []) + topbar_sections.get("middle", []) + topbar_sections.get("right", [])
+            )
+            if _item.get("type") not in _skip_in_mobile
+        ]
+        if _topbar_items:
+            if navigation:
+                mobile_menu_html += "<div class='mobile-menu-divider'></div>"
+            mobile_menu_html += "<div class='mobile-menu-topbar-links'>"
+            for _item in _topbar_items:
+                mobile_menu_html += _render_topbar_item(_item)
+            mobile_menu_html += "</div>"
+
+        # 3. Search
+        if show_search:
+            _search_item_params = next(
+                (
+                    _i.get("params")
+                    for _items in topbar_sections.values()
+                    for _i in _items
+                    if _i.get("type") == "search"
+                ),
+                None,
+            )
+            _mobile_search_params: dict[str, str] = dict(_search_item_params) if _search_item_params else {}
+            _mobile_search_params["mode"] = "full"
+            mobile_menu_html += _render_search_bar(_mobile_search_params, id_prefix="mobile")
+
+        mobile_menu_html += "</div>"
+        mobile_menu_script = """<script>
+(function() {
+    var btn = document.querySelector('.mobile-menu-toggle');
+    var menu = document.getElementById('mobile-menu');
+    if (!btn || !menu) return;
+
+    function setMenuOpen(open) {
+        if (open) {
+            menu.classList.add('is-open');
+            btn.setAttribute('aria-expanded', 'true');
+            btn.classList.add('is-active');
+        } else {
+            menu.classList.remove('is-open');
+            btn.setAttribute('aria-expanded', 'false');
+            btn.classList.remove('is-active');
+        }
+    }
+
+    btn.addEventListener('click', function() {
+        setMenuOpen(!menu.classList.contains('is-open'));
+    });
+
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape' && menu.classList.contains('is-open')) {
+            setMenuOpen(false);
+            btn.focus();
+        }
+    });
+
+    document.addEventListener('click', function(e) {
+        if (menu.classList.contains('is-open') && !menu.contains(e.target) && !btn.contains(e.target)) {
+            setMenuOpen(false);
+        }
+    });
+
+    menu.querySelectorAll('a').forEach(function(link) {
+        link.addEventListener('click', function() { setMenuOpen(false); });
+    });
+
+    var mobileForm = document.getElementById('mobile-search-form');
+    var mobileInput = document.getElementById('mobile-search-input');
+    if (mobileForm && mobileInput) {
+        mobileForm.addEventListener('submit', function(e) {
+            var q = (mobileInput.value || '').trim();
+            if (!q) { e.preventDefault(); return false; }
+            mobileInput.value = q;
+        });
+    }
+})();
+</script>"""
 
     search_script = ""
     if show_search:
@@ -1027,7 +1143,7 @@ def create_html_template(
             }}
         }}
 
-        @media (max-width: 768px) {{
+        @media (max-width: 1024px) {{
             .sidebar {{
                 transform: translateX(-100%);
                 transition: transform 0.3s;
@@ -1035,6 +1151,7 @@ def create_html_template(
 
             .main-content {{
                 margin-left: 0;
+                max-width: 100%;
                 padding: 0.75rem;
                 flex-direction: column;
             }}
@@ -1249,34 +1366,147 @@ def create_html_template(
             display: none;
         }}
 
-        @media (max-width: 768px) {{
-            .search-form {{
-                position: absolute;
-                top: 100%;
-                right: 0;
-                margin-top: 0.5rem;
-                width: 0;
-                min-width: 0;
-                max-width: 0;
-                flex: 0 0 0;
-                opacity: 0;
-                visibility: hidden;
-                transform: translateY(-0.25rem);
-                transition: width 0.2s ease-out, opacity 0.15s ease-out, visibility 0.15s, transform 0.2s ease-out;
-                z-index: 200;
+        /* Hamburger button – hidden on desktop, shown on mobile */
+        .mobile-menu-toggle {{
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 5px;
+            width: 44px;
+            height: 44px;
+            padding: 0;
+            background: none;
+            border: none;
+            cursor: pointer;
+            color: var(--color-gray-700);
+            border-radius: 0.375rem;
+            transition: background 0.15s;
+            flex-shrink: 0;
+        }}
+
+        .mobile-menu-toggle:hover {{
+            background: var(--color-gray-100);
+        }}
+
+        .hamburger-bar {{
+            display: block;
+            width: 20px;
+            height: 2px;
+            background: currentColor;
+            border-radius: 2px;
+            transition: transform 0.2s, opacity 0.2s;
+        }}
+
+        .mobile-menu-toggle.is-active .hamburger-bar:nth-child(1) {{
+            transform: translateY(7px) rotate(45deg);
+        }}
+
+        .mobile-menu-toggle.is-active .hamburger-bar:nth-child(2) {{
+            opacity: 0;
+            transform: scaleX(0);
+        }}
+
+        .mobile-menu-toggle.is-active .hamburger-bar:nth-child(3) {{
+            transform: translateY(-7px) rotate(-45deg);
+        }}
+
+        /* Mobile menu panel – hidden by default, only activated on mobile */
+        .mobile-menu {{
+            display: none;
+            position: fixed;
+            top: 60px;
+            left: 0;
+            right: 0;
+            background: var(--color-bg-topbar);
+            border-bottom: 1px solid var(--color-gray-200);
+            z-index: 98;
+            overflow: hidden;
+        }}
+
+        @media (max-width: 1024px) {{
+            /* Show hamburger, hide desktop nav sections from topbar */
+            .mobile-menu-toggle {{
+                display: flex;
             }}
 
-            .search-form.is-open {{
-                width: min(320px, calc(100vw - 2rem));
-                min-width: min(320px, calc(100vw - 2rem));
-                max-width: min(320px, calc(100vw - 2rem));
-                flex: 0 0 auto;
+            .topbar-middle,
+            .topbar-right {{
+                display: none;
+            }}
+
+            /* Hide all topbar-left links/text — topbar shows hamburger only */
+            .topbar-left .topbar-link,
+            .topbar-left .topbar-text {{
+                display: none;
+            }}
+
+            /* Mobile menu animation */
+            .mobile-menu {{
+                display: block;
+                max-height: 0;
+                opacity: 0;
+                padding: 0 1.5rem;
+                box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+                transition: max-height 0.25s ease-out, opacity 0.2s ease-out, padding 0.25s ease-out;
+            }}
+
+            .mobile-menu.is-open {{
+                max-height: 90vh;
+                opacity: 1;
+                padding: 0.75rem 1.5rem 1rem;
+                overflow-y: auto;
+            }}
+
+            .mobile-menu .topbar-link {{
+                display: block;
+                padding: 0.625rem 0.75rem;
+                font-size: 0.9375rem;
+                border-radius: 0.375rem;
+            }}
+
+            .mobile-menu .topbar-logo-link,
+            .mobile-menu .topbar-logo-container {{
+                display: none;
+            }}
+
+            /* Sidebar nav section inside mobile menu */
+            .mobile-menu-nav {{
+                padding-bottom: 0.5rem;
+            }}
+
+            /* Divider between nav and topbar links */
+            .mobile-menu-divider {{
+                height: 1px;
+                background: var(--color-gray-200);
+                margin: 0.5rem 0;
+            }}
+
+            /* Topbar links section inside mobile menu */
+            .mobile-menu-topbar-links {{
+                padding: 0.25rem 0;
+            }}
+
+            /* Search bar inside mobile menu: always fully visible */
+            .mobile-menu .search-bar-wrapper {{
+                display: flex;
+                margin-top: 0.5rem;
+                padding-top: 0.5rem;
+                border-top: 1px solid var(--color-gray-200);
+            }}
+
+            .mobile-menu .search-form,
+            .mobile-menu .search-form.is-open {{
+                position: static;
+                width: 100%;
+                min-width: 0;
+                max-width: 100%;
+                flex: 1;
                 opacity: 1;
                 visibility: visible;
-                transform: translateY(0);
-                box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
+                transform: none;
+                box-shadow: none;
             }}
-
         }}
 
         .servemd-branding {{
@@ -1430,6 +1660,7 @@ def create_html_template(
 <body>
     {sidebar_html}
     {topbar_html}
+    {mobile_menu_html}
     <div class="main-content">
         <div class="content">
             {final_content}
@@ -1438,6 +1669,7 @@ def create_html_template(
     </div>
     {search_script}
     {search_page_script}
+    {mobile_menu_script}
     <script>
     (function() {{
         var copyLinkBtn = document.querySelector('.page-actions-item[data-action="copy-link"]');
