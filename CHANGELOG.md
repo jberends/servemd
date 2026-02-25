@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+### v1.1.0 (2026-02-25)
+
+### Changed
+
+- :sparkles: **Mobile menu** - Hamburger menu for mobile navigation:
+  - `<button id="mobile-menu-toggle">☰</button>` in topbar
+  - `#mobile-menu` overlay panel with full-width, white background, border-bottom, proper padding
+  - Animate open/close transition (slide-down / fade via `max-height` + `opacity`)
+  - Close mobile menu when a navigation link is clicked (UX)
+  - Close mobile menu when the user taps outside the menu
+  - Close mobile menu on `Escape` key
+
 ## v1.0.0 (2026-02-16)
 
 ### Added
