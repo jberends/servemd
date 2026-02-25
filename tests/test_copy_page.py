@@ -115,3 +115,31 @@ async def test_copy_page_uses_base_url_when_set(temp_docs):
     assert "https://docs.example.com/features/mcp.md" in html
     assert "chat.mistral.ai/chat?q=Read+" in html
     assert "chatgpt.com/?prompt=Read+https%3A%2F%2Fdocs.example.com%2Ffeatures%2Fmcp.md" in html
+
+
+@pytest.mark.asyncio
+async def test_copy_page_upgrades_http_to_https_via_forwarded_proto(temp_docs):
+    """When X-Forwarded-Proto: https is present and BASE_URL is unset, AI links use https://."""
+    from docs_server import config
+
+    with (
+        patch.object(config.settings, "DOCS_ROOT", temp_docs),
+        patch.object(config.settings, "CACHE_ROOT", temp_docs / "cache"),
+        patch.object(config.settings, "BASE_URL", None),
+        patch.object(config.settings, "MCP_ENABLED", False),
+        patch.object(config.settings, "SERVEMD_BRANDING_ENABLED", True),
+    ):
+        async with AsyncClient(
+            transport=ASGITransport(app=app),
+            base_url="http://localhost:8080",
+        ) as client:
+            response = await client.get(
+                "/features/mcp.html",
+                headers={"x-forwarded-proto": "https"},
+            )
+
+    assert response.status_code == 200
+    html = response.text
+    assert "https://localhost:8080/features/mcp.md" in html
+    assert "http://localhost:8080/features/mcp.md" not in html
+    assert "chatgpt.com/?prompt=Read+https%3A%2F%2Flocalhost%3A8080%2Ffeatures%2Fmcp.md" in html

@@ -534,7 +534,14 @@ async def serve_content(path: str, request: Request):
             current_doc_path = path[:-5] if path.endswith(".html") else path  # e.g. features/mcp
 
             # Build page actions (Copy page dropdown with AI links)
-            base_url = settings.BASE_URL or str(request.base_url).rstrip("/")
+            if settings.BASE_URL:
+                base_url = settings.BASE_URL
+            else:
+                base_url = str(request.base_url).rstrip("/")
+                # Respect X-Forwarded-Proto from reverse proxies that terminate SSL
+                forwarded_proto = request.headers.get("x-forwarded-proto", "")
+                if forwarded_proto == "https" and base_url.startswith("http://"):
+                    base_url = "https://" + base_url[7:]
             raw_md_url = f"{base_url}/{current_doc_path}.md"
             page_url = f"{base_url}{current_path}" if current_path.startswith("/") else f"{base_url}/{current_path}"
             page_actions = {
