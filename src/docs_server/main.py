@@ -537,7 +537,7 @@ def _serve_html_in_iframe(path: str, file_path: Path) -> HTMLResponse:
     if not re.fullmatch(r"[A-Za-z0-9._\-/]+", path):
         raise HTTPException(status_code=400, detail="Invalid path")
 
-    safe_src = quote(path, safe="/")
+    safe_src = html.escape(quote(path, safe="/"), quote=True)
     safe_title = html.escape(file_path.stem, quote=True)
     iframe_content = f'<iframe src="/raw/{safe_src}" class="html-embed-frame" title="{safe_title}"></iframe>'
 
@@ -679,7 +679,8 @@ async def serve_content(path: str, request: Request, highlight: str = ""):
             if not highlight:
                 await save_cached_html(file_path, full_html)
 
-            logger.info(f"Rendered and cached: {path}")
+            safe_log_path = path.replace("\r", "").replace("\n", "")
+            logger.info("Rendered: %s", safe_log_path)
             return HTMLResponse(content=full_html)
 
         except (OSError, UnicodeDecodeError) as e:
@@ -695,7 +696,7 @@ async def serve_content(path: str, request: Request, highlight: str = ""):
 
         try:
             content = file_path.read_text(encoding="utf-8")
-            logger.debug(f"Serving raw markdown: {path}")
+            logger.debug("Serving raw markdown: %s", path.replace("\r", "").replace("\n", ""))
             return PlainTextResponse(content=content, media_type="text/markdown")
         except (OSError, UnicodeDecodeError) as e:
             logger.error(f"Error reading file {file_path}: {e}")
@@ -724,7 +725,7 @@ async def serve_content(path: str, request: Request, highlight: str = ""):
 
         media_type = media_types.get(suffix, "application/octet-stream")
 
-        logger.debug(f"Serving asset: {path} ({media_type})")
+        logger.debug("Serving asset: %s (%s)", path.replace("\r", "").replace("\n", ""), media_type)
         return FileResponse(path=str(file_path), media_type=media_type, filename=file_path.name)
 
 

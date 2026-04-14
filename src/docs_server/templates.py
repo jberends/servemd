@@ -744,10 +744,14 @@ def create_html_template(
 
     highlight_script = ""
     if highlight_term:
-        safe_highlight_term = html.escape(highlight_term, quote=True)
-        highlight_script = f"""<script>
+        # Store the term in a data attribute so no user input appears inside the <script> body.
+        # JavaScript reads it from the DOM, which auto-decodes HTML entities.
+        safe_highlight_data = html.escape(highlight_term, quote=True)
+        highlight_script = f"""<div id="servemd-highlight-config" data-term="{safe_highlight_data}" aria-hidden="true" style="display:none"></div>
+<script>
 (function() {{
-    var searchTerm = "{safe_highlight_term}";
+    var el = document.getElementById('servemd-highlight-config');
+    var searchTerm = el ? el.getAttribute('data-term') : '';
     if (!searchTerm) return;
 
     function highlightSearchTerms(term) {{

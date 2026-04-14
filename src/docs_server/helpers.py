@@ -94,8 +94,9 @@ def format_search_results_human(results: list[Any], query: str = "") -> str:
         safe_snippet = html_escape(plain_snippet) if plain_snippet else ""
         safe_category = html_escape(result.category) if result.category else ""
 
+        safe_url = html_escape(url, quote=True)
         card = "<div class='search-result-card'>"
-        card += f"<a href='{url}' class='search-result-title'>{safe_title}</a>"
+        card += f"<a href='{safe_url}' class='search-result-title'>{safe_title}</a>"
         if safe_category:
             card += f"<span class='search-result-category'>{safe_category}</span>"
         card += f"<span class='search-result-path'>{safe_path}</span>"
@@ -177,7 +178,8 @@ def get_file_path(requested_path: str) -> Path | None:
 
     # Security check
     if not is_safe_path(clean_path, settings.DOCS_ROOT):
-        logger.warning(f"Unsafe path requested: {clean_path}")
+        safe_log = clean_path.replace("\r", "").replace("\n", "")
+        logger.warning("Unsafe path requested: %s", safe_log)
         return None
 
     file_path = settings.DOCS_ROOT / clean_path
