@@ -9,14 +9,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- :electric_plug: **MCP Installation UX** — New `/about_servemd` about page with one-click install buttons and version info:
+- :electric_plug: **MCP Installation UX** — New `/about_servemd` about page with per-client connection instructions and version info:
   - `GET /about_servemd` renders in the full three-column layout (sidebar + content + TOC); excluded from the Whoosh search index automatically (not under `DOCS_ROOT`).
+  - **Claude (claude.ai)** — step-by-step guide for the native Connectors flow (Customize → Connectors → +); covers Free, Pro, Max, Team & Enterprise plans including the Owner-first Team/Enterprise flow.
+  - **ChatGPT** — instructions for Developer Mode connector (Plus/Team/Enterprise/Edu); URL shown with required trailing slash; per-chat activation note included.
+  - **Mistral Le Chat** — custom MCP connector guide (Intelligence → Connectors → Custom MCP Connector); Admin-role requirement noted.
   - **Add to Cursor** deep link via `cursor://` scheme: uses `mcp-remote` as a stdio bridge (required workaround for broken HTTP transport in Cursor v3.0.9+).
   - **Add to VS Code** deep link via `vscode://` scheme: uses VS Code's native HTTP MCP transport.
-  - **Claude Desktop** copy-paste widget: one-click clipboard button for `claude_desktop_config.json` with file-path hints for macOS and Windows.
-  - All URLs derived from the deployment's actual base URL (`BASE_URL` env var or request origin) — zero hardcoded placeholders.
+  - All URLs derived from the deployment's actual base URL (`BASE_URL` env var or request origin) — zero hardcoded placeholders; ChatGPT URL automatically gets trailing slash.
+  - Shared public-internet reachability note with ngrok suggestion for local development.
   - "Powered by servemd" sidebar footer now links to `/about_servemd`; GitHub link moved to the about page only.
-  - New `docs/features/mcp-setup.md` step-by-step guide for Claude Desktop, Cursor, VS Code, and manual JSON fallback.
+  - New `docs/features/mcp-setup.md` step-by-step guide for AI clients, Cursor, VS Code, and manual JSON fallback.
   - Updated `docs/features/mcp.md` integration examples with Cursor mcp-remote config and link to `/about_servemd`.
 - :page_facing_up: **HTML file embedding** - Raw `.html` files in `DOCS_ROOT` are now served inside the standard doc layout (sidebar, topbar) via a same-origin iframe:
   - `GET /foo.html` falls back to `foo.html` when no `foo.md` exists — markdown always wins when both are present
