@@ -500,6 +500,9 @@ def _serve_html_in_iframe(path: str, file_path: Path) -> HTMLResponse:
     title = f"{file_path.stem.replace('_', ' ').title()} - Documentation"
     current_path = f"/{path}" if path and not path.startswith("/") else path
 
+    if not re.fullmatch(r"[A-Za-z0-9._\-/]+", path):
+        raise HTTPException(status_code=400, detail="Invalid path")
+
     safe_src = quote(path, safe="/")
     safe_title = html.escape(file_path.stem, quote=True)
     iframe_content = f'<iframe src="/raw/{safe_src}" class="html-embed-frame" title="{safe_title}"></iframe>'
