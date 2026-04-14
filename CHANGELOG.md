@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## UNRELEASED
 
+### Added
+
+- :bookmark_tabs: **Favicon** - Inline SVG favicon using the Tabler `book` icon in accent orange (`#f26a28`); embedded as a data URI so it works offline with no external requests.
+
 ### Fixed
 
 - Improved search for identifiers in headings: The search index tokenizer uses now a single general rule: any heading token whose segments (split by `-`, `_`, `+`, `/`, `.`) contain at least one letter **and** at least one digit is extracted as an identifier. Covers `UC2-002`, `KECMAP2-1234`, `G002`, `G-02`, `#2.02`, `23/24`, `2.0.2`, `2.0.2.1`, lower-case variants, digit-first forms (`3gpp-spec`), and any future naming convention without needing per-pattern branches. Ensures better search results for identifiers in headings.
