@@ -105,11 +105,13 @@ def search_docs(query: str, limit: int | None = None) -> list[SearchResult]:
     results: list[SearchResult] = []
 
     try:
-        # Create parser for multi-field search
-        # Fields: title (2x boost), content, headings (1.5x boost)
+        # Create parser for multi-field search.
+        # identifiers field (5x boost) catches exact UC/AUTH/G- lookups first;
+        # title (2x), headings (1.5x), content (1x) handle prose searches.
         parser = MultifieldParser(
-            ["title", "content", "headings"],
+            ["identifiers", "title", "headings", "content", "path_text"],
             schema=whoosh_index.schema,
+            fieldboosts={"identifiers": 5.0, "title": 2.0, "headings": 1.5},
         )
 
         # Add fuzzy search support for typo tolerance

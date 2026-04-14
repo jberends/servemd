@@ -139,9 +139,14 @@ class TestExtractHeadings:
         assert headings == ["First", "Second"]
 
     def test_extract_headings_none(self):
-        """Return empty list when no h2 headings."""
-        content = "# Title\n\n### H3 Heading\n\nContent"
+        """Return empty list when no h2–h4 headings (only h1 or plain text)."""
+        content = "# Title\n\nContent only"
         assert extract_headings(content) == []
+
+    def test_extract_headings_h3(self):
+        """h3 headings (use-case entries) are captured."""
+        content = "# Title\n\n### UC-2-002 Create Template\n\nContent"
+        assert extract_headings(content) == ["UC-2-002 Create Template"]
 
     def test_extract_headings_empty(self):
         """Handle empty content."""

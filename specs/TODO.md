@@ -96,6 +96,11 @@ These are ideas for potential future improvements:
 - [ ] Version comparison
 - [ ] Search within page
 - [ ] Copy code button
+- [ ] Add favicon (e.g. Tabler "book" icon or similar)
+
+### MCP Installation UX
+- [ ] One-click MCP installation links for Claude Desktop and Cursor
+- [ ] Documentation page covering MCP setup for both clients
 
 ### Developer Experience
 - [ ] Hot reload for documentation changes

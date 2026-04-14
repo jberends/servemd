@@ -54,6 +54,7 @@ class DocumentInfo:
     title: str
     content: str
     headings: list[str] = field(default_factory=list)
+    identifiers: list[str] = field(default_factory=list)
     category: str = ""
     modified: datetime = field(default_factory=lambda: datetime.now(UTC))
     size: int = 0
@@ -282,6 +283,8 @@ class WhooshSearchBackend(SearchBackend):
                 content=doc.content,
                 content_stored=doc.content,
                 headings=" ".join(doc.headings),
+                identifiers=" ".join(doc.identifiers),
+                path_text=doc.path,
                 category=doc.category,
                 modified=doc.modified,
                 size=doc.size,
@@ -362,20 +365,69 @@ def extract_title(content: str) -> str:
 
 def extract_headings(content: str) -> list[str]:
     """
-    Extract all h2 headings from markdown content.
+    Extract all h2-h4 headings from markdown content.
+
+    h3/h4 headings are where individual use-case entries (UC-2-002 …) live,
+    so capturing them in the boosted headings field is essential for search.
 
     Args:
         content: Raw markdown content
 
     Returns:
-        List of h2 heading strings
+        List of heading strings (h2, h3, h4)
     """
     try:
-        # Match all h2 headings: ## Heading
-        matches = re.findall(r"^##\s+(.+)$", content, re.MULTILINE)
+        matches = re.findall(r"^#{2,4}\s+(.+)$", content, re.MULTILINE)
         return [h.strip() for h in matches]
     except Exception as e:
         logger.warning(f"Error extracting headings: {e}")
+        return []
+
+
+# Matches structured identifiers in heading lines.
+#
+# General rule: any token whose segments collectively contain at least one
+# letter AND at least one digit.  Segment separators recognised: - _ + .
+#
+# '/' is intentionally excluded: it absorbs preceding path words (e.g.
+# 'users/UC-001' instead of 'UC-001'), turning the extracted token into a
+# whitespace-tokenised string that no longer matches a bare 'UC-001' query.
+#
+# Examples matched:
+#   UC-2-002, UC2-002, UC2, G-02, G002, KEV-123, KECMAP2-1234,
+#   AUTH-01, AUTH_01, Screen_01, v1.2.3, API.3.0, UC+2+002, #002
+_IDENTIFIER_RE = re.compile(
+    r"(?:"
+    r"#\d+"  # #002, #123 — hash-prefixed ticket numbers
+    r"|\b(?=[-_.+A-Za-z0-9]*[A-Za-z])(?=[-_.+A-Za-z0-9]*\d)"  # must have letter AND digit
+    r"[A-Za-z0-9]+(?:[-_+.][A-Za-z0-9]+)*\b"  # segments joined by - _ + .
+    r")"
+)
+
+
+def extract_identifiers(content: str) -> list[str]:
+    """
+    Extract structured identifiers from heading lines only.
+
+    Identifiers are preserved verbatim (lowercased for the index) so that a
+    search for 'UC-2-002' matches as a single exact token against the
+    identifiers field (field_boost=5.0), ranking the defining document first.
+
+    Args:
+        content: Raw markdown content
+
+    Returns:
+        Deduplicated list of identifier strings (lowercase)
+    """
+    try:
+        seen: dict[str, None] = {}
+        for line in content.splitlines():
+            if line.startswith("#"):
+                for m in _IDENTIFIER_RE.finditer(line):
+                    seen[m.group(0).lower()] = None
+        return list(seen)
+    except Exception as e:
+        logger.warning(f"Error extracting identifiers: {e}")
         return []
 
 
@@ -730,6 +782,7 @@ class SearchIndexManager:
                 title=extract_title(content),
                 content=content,
                 headings=extract_headings(content),
+                identifiers=extract_identifiers(content),
                 category=extract_category(file_path, self._docs_root),
                 modified=datetime.fromtimestamp(stat.st_mtime, tz=UTC),
                 size=stat.st_size,

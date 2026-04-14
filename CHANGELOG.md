@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## UNRELEASED
+
+### Fixed
+
+- Improved search for identifiers in headings: The search index tokenizer uses now a single general rule: any heading token whose segments (split by `-`, `_`, `+`, `/`, `.`) contain at least one letter **and** at least one digit is extracted as an identifier. Covers `UC2-002`, `KECMAP2-1234`, `G002`, `G-02`, `#2.02`, `23/24`, `2.0.2`, `2.0.2.1`, lower-case variants, digit-first forms (`3gpp-spec`), and any future naming convention without needing per-pattern branches. Ensures better search results for identifiers in headings.
+- :mag: **MCP search: structured identifier lookup** - Searching for identifiers like `UC-2-002`, `AUTH-01`, or `G-02` now reliably returns the defining document as the first result. Three root causes were addressed:
+  - `extract_headings()` now captures h2–h4 (was h2-only), so UC entry headings at h3 level land in the boosted `headings` field.
+  - New `identifiers` field (field\_boost=5.0) extracts structured IDs from heading lines verbatim using a whitespace-only tokenizer, preserving `UC-2-002` as a single exact token.
+  - Custom prose analyzer replaces the bare `StemmingAnalyzer`: extended tokenizer emits hyphenated tokens as single units, and `StopFilter(minsize=1)` keeps single-digit tokens so `UC-3-002` and `UC-4-002` remain distinguishable.
+  - New `path_text` field tokenises the file path on word boundaries, enabling filename-fragment searches (e.g. `AUTH_01` finds `screens/AUTH_01_login_screen.md`).
+  - `MultifieldParser` now includes `identifiers` and `path_text` with per-field boosts (`identifiers: 5.0`, `title: 2.0`, `headings: 1.5`).
+
 ### v1.1.0 (2026-02-25)
 
 ### Changed
