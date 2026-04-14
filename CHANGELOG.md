@@ -14,6 +14,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - New `GET /raw/{path}` endpoint serves any file from `DOCS_ROOT` as-is (no template wrapping), used as the iframe `src` to avoid recursive rendering
   - Iframe fills the content pane (`min-height: 80vh`); scripts and styles in the HTML file run in full isolation
   - Path traversal protection inherited from existing `get_file_path()` validation; iframe attributes HTML-escaped and URL-encoded
+- :electric_plug: **MCP Installation UX** — New `/servemd` about page with one-click install buttons and version info:
+  - `GET /servemd` renders in the full three-column layout (sidebar + content + TOC); excluded from the Whoosh search index automatically (not under `DOCS_ROOT`).
+  - **Add to Cursor** deep link via `cursor://` scheme: uses `mcp-remote` as a stdio bridge (required workaround for broken HTTP transport in Cursor v3.0.9+).
+  - **Add to VS Code** deep link via `vscode://` scheme: uses VS Code's native HTTP MCP transport.
+  - **Claude Desktop** copy-paste widget: one-click clipboard button for `claude_desktop_config.json` with file-path hints for macOS and Windows.
+  - All URLs derived from the deployment's actual base URL (`BASE_URL` env var or request origin) — zero hardcoded placeholders.
+  - "Powered by servemd" sidebar footer now links to `/servemd`; GitHub link demoted to "Source on GitHub ↗" sub-line.
+  - New `docs/features/mcp-setup.md` step-by-step guide for Claude Desktop, Cursor, VS Code, and manual JSON fallback.
+  - Updated `docs/features/mcp.md` integration examples with Cursor mcp-remote config and link to `/servemd`.
 - :bookmark_tabs: **Favicon** - Inline SVG favicon using the Tabler `book` icon in accent orange (`#f26a28`); embedded as a data URI so it works offline with no external requests.
 
 ### Fixed

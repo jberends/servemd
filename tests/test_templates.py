@@ -615,3 +615,107 @@ def test_create_html_template_mobile_css_included():
     assert ".mobile-menu-toggle" in result
     assert ".hamburger-bar" in result
     assert ".mobile-menu" in result
+
+
+# ---------------------------------------------------------------------------
+# MCP install link generators
+# ---------------------------------------------------------------------------
+
+
+def test_cursor_install_link_uses_mcp_remote():
+    """Cursor deep link config must use mcp-remote, not direct HTTP."""
+    import base64
+    import json
+    import urllib.parse
+
+    from docs_server.templates import _cursor_install_link
+
+    link = _cursor_install_link("my-docs", "https://docs.example.com/mcp")
+    assert link.startswith("cursor://anysphere.cursor-deeplink/mcp/install?")
+
+    params = urllib.parse.parse_qs(urllib.parse.urlparse(link).query)
+    config = json.loads(base64.b64decode(params["config"][0]).decode())
+
+    assert config["type"] == "stdio"
+    assert config["command"] == "npx"
+    assert "mcp-remote" in config["args"]
+    assert "https://docs.example.com/mcp" in config["args"]
+
+
+def test_cursor_install_link_base64_decodable():
+    """The config query param in the Cursor deep link must be valid base64-encoded JSON."""
+    import base64
+    import json
+    import urllib.parse
+
+    from docs_server.templates import _cursor_install_link
+
+    link = _cursor_install_link("docs", "https://example.com/mcp")
+    params = urllib.parse.parse_qs(urllib.parse.urlparse(link).query)
+    decoded = json.loads(base64.b64decode(params["config"][0]).decode())
+
+    assert isinstance(decoded, dict)
+    assert "type" in decoded
+
+
+def test_vscode_install_link_uses_http_transport():
+    """VS Code deep link config must use native HTTP transport."""
+    import json
+    import urllib.parse
+
+    from docs_server.templates import _vscode_install_link
+
+    link = _vscode_install_link("my-docs", "https://docs.example.com/mcp")
+    assert link.startswith("vscode://mcp/install?")
+
+    config_str = urllib.parse.unquote(link[len("vscode://mcp/install?") :])
+    config = json.loads(config_str)
+
+    assert config["type"] == "http"
+    assert config["url"] == "https://docs.example.com/mcp"
+    assert config["name"] == "my-docs"
+
+
+def test_render_servemd_about_contains_mcp_url():
+    """The /servemd about page content must include the deployment's MCP endpoint URL."""
+    from docs_server.templates import render_servemd_about_content
+
+    content, toc = render_servemd_about_content(
+        base_url="https://docs.example.com",
+        version="1.2.3",
+        mcp_enabled=True,
+    )
+
+    assert "https://docs.example.com/mcp" in content
+    assert "1.2.3" in content
+    assert any(item["id"] == "connect-your-ai-client" for item in toc)
+
+
+def test_render_servemd_about_mcp_disabled():
+    """When MCP is disabled the connect section and MCP URL should be absent."""
+    from docs_server.templates import render_servemd_about_content
+
+    content, toc = render_servemd_about_content(
+        base_url="https://docs.example.com",
+        version="1.0.0",
+        mcp_enabled=False,
+    )
+
+    assert "connect-your-ai-client" not in content
+    assert "mcp-install-btn" not in content
+    assert not any(item["id"] == "connect-your-ai-client" for item in toc)
+
+
+def test_branding_footer_links_to_servemd_page():
+    """The 'Powered by servemd' branding footer should link to /servemd."""
+    from docs_server.templates import create_html_template
+
+    result = create_html_template(
+        "<p>Content</p>",
+        navigation=[{"type": "link", "title": "Home", "link": "/"}],
+        show_branding=True,
+    )
+
+    assert 'href="/servemd"' in result
+    assert "Powered by servemd" in result
+    assert "Source on GitHub" in result
