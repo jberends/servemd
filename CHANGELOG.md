@@ -9,15 +9,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- :electric_plug: **MCP Installation UX** — New `/servemd` about page with one-click install buttons and version info:
-  - `GET /servemd` renders in the full three-column layout (sidebar + content + TOC); excluded from the Whoosh search index automatically (not under `DOCS_ROOT`).
+- :electric_plug: **MCP Installation UX** — New `/about_servemd` about page with one-click install buttons and version info:
+  - `GET /about_servemd` renders in the full three-column layout (sidebar + content + TOC); excluded from the Whoosh search index automatically (not under `DOCS_ROOT`).
   - **Add to Cursor** deep link via `cursor://` scheme: uses `mcp-remote` as a stdio bridge (required workaround for broken HTTP transport in Cursor v3.0.9+).
   - **Add to VS Code** deep link via `vscode://` scheme: uses VS Code's native HTTP MCP transport.
   - **Claude Desktop** copy-paste widget: one-click clipboard button for `claude_desktop_config.json` with file-path hints for macOS and Windows.
   - All URLs derived from the deployment's actual base URL (`BASE_URL` env var or request origin) — zero hardcoded placeholders.
-  - "Powered by servemd" sidebar footer now links to `/servemd`; GitHub link demoted to "Source on GitHub ↗" sub-line.
+  - "Powered by servemd" sidebar footer now links to `/about_servemd`; GitHub link moved to the about page only.
   - New `docs/features/mcp-setup.md` step-by-step guide for Claude Desktop, Cursor, VS Code, and manual JSON fallback.
-  - Updated `docs/features/mcp.md` integration examples with Cursor mcp-remote config and link to `/servemd`.
+  - Updated `docs/features/mcp.md` integration examples with Cursor mcp-remote config and link to `/about_servemd`.
 - :page_facing_up: **HTML file embedding** - Raw `.html` files in `DOCS_ROOT` are now served inside the standard doc layout (sidebar, topbar) via a same-origin iframe:
   - `GET /foo.html` falls back to `foo.html` when no `foo.md` exists — markdown always wins when both are present
   - New `GET /raw/{path}` endpoint serves any file from `DOCS_ROOT` as-is (no template wrapping), used as the iframe `src` to avoid recursive rendering
@@ -25,7 +25,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Path traversal protection inherited from existing `get_file_path()` validation; iframe attributes HTML-escaped and URL-encoded
 - :bookmark_tabs: **Favicon** - Inline SVG favicon using the Tabler `book` icon in accent orange (`#f26a28`); embedded as a data URI so it works offline with no external requests.
 
-### Fixed
+### Changed
 
 - Improved search for identifiers in headings: The search index tokenizer uses now a single general rule: any heading token whose segments (split by `-`, `_`, `+`, `/`, `.`) contain at least one letter **and** at least one digit is extracted as an identifier. Covers `UC2-002`, `KECMAP2-1234`, `G002`, `G-02`, `#2.02`, `23/24`, `2.0.2`, `2.0.2.1`, lower-case variants, digit-first forms (`3gpp-spec`), and any future naming convention without needing per-pattern branches. Ensures better search results for identifiers in headings.
 - :mag: **MCP search: structured identifier lookup** - Searching for identifiers like `UC-2-002`, `AUTH-01`, or `G-02` now reliably returns the defining document as the first result. Three root causes were addressed:
