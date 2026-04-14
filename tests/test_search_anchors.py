@@ -23,16 +23,16 @@ def tmp_docs_root(tmp_path, monkeypatch):
 
 def test_generate_anchor_id_basic():
     """generate_anchor_id converts heading text to anchor-safe string."""
-    from docs_server.mcp.indexer import generate_anchor_id
+    import docs_server.mcp.indexer as idx_module
 
-    assert generate_anchor_id("UC-2-002 Manage Template Versions") == "uc-2-002-manage-template-versions"
-    assert generate_anchor_id("Hello World") == "hello-world"
-    assert generate_anchor_id("AUTH_01 Login") == "auth01-login"
+    assert idx_module.generate_anchor_id("UC-2-002 Manage Template Versions") == "uc-2-002-manage-template-versions"
+    assert idx_module.generate_anchor_id("Hello World") == "hello-world"
+    assert idx_module.generate_anchor_id("AUTH_01 Login") == "auth01-login"
 
 
 def test_extract_identifier_to_anchor_map():
     """extract_identifier_to_anchor_map returns identifier -> anchor mapping."""
-    from docs_server.mcp.indexer import extract_identifier_to_anchor_map
+    import docs_server.mcp.indexer as idx_module
 
     content = """# Use Cases
 
@@ -44,7 +44,7 @@ Details.
 
 More details.
 """
-    mapping = extract_identifier_to_anchor_map(content)
+    mapping = idx_module.extract_identifier_to_anchor_map(content)
     assert "uc-2-001" in mapping
     assert mapping["uc-2-001"] == "uc-2-001-first-use-case"
     assert "uc-2-002" in mapping
@@ -53,7 +53,7 @@ More details.
 
 def test_search_result_has_anchor_for_identifier_match(tmp_docs_root):
     """Searching for an identifier returns a result with an anchor link."""
-    from docs_server.mcp.indexer import get_index_manager
+    import docs_server.mcp.indexer as idx_module
     from docs_server.mcp.search import search_docs
 
     content = """# Use Cases
@@ -64,7 +64,7 @@ This use case describes how to manage template versions.
 """
     (tmp_docs_root / "use_cases.md").write_text(content, encoding="utf-8")
 
-    manager = get_index_manager()
+    manager = idx_module.get_index_manager()
     asyncio.run(manager.initialize(force_rebuild=True))
 
     results = search_docs("UC-2-002")
@@ -77,7 +77,7 @@ This use case describes how to manage template versions.
 
 def test_search_result_url_without_anchor_for_no_identifier(tmp_docs_root):
     """Content matches without identifier do not get an anchor."""
-    from docs_server.mcp.indexer import get_index_manager
+    import docs_server.mcp.indexer as idx_module
     from docs_server.mcp.search import search_docs
 
     content = """# Documentation
@@ -86,7 +86,7 @@ This page discusses authentication concepts.
 """
     (tmp_docs_root / "auth.md").write_text(content, encoding="utf-8")
 
-    manager = get_index_manager()
+    manager = idx_module.get_index_manager()
     asyncio.run(manager.initialize(force_rebuild=True))
 
     results = search_docs("authentication")
