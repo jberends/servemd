@@ -69,7 +69,7 @@ jobs:
             # Always tag as 'latest' (on main branch or version tags)
             type=raw,value=latest,enable=true
           labels: |
-            org.opencontainers.image.title=ServeM
+            org.opencontainers.image.title=ServeMD
             org.opencontainers.image.description=Beautiful markdown documentation server for humans and AI
             org.opencontainers.image.vendor=JBerends
             org.opencontainers.image.licenses=Apache-2.0

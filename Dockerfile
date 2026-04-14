@@ -1,5 +1,5 @@
 # =============================================================================
-# ServeM Documentation Server - Multi-stage Dockerfile
+# ServeMD Documentation Server - Multi-stage Dockerfile
 # =============================================================================
 # This Dockerfile builds a production-ready image for serving markdown docs.
 # It uses multi-stage builds to keep the final image small and secure.

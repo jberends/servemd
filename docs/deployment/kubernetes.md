@@ -352,7 +352,7 @@ Create a reusable Helm chart:
 # Chart.yaml
 apiVersion: v2
 name: servemd-docs
-description: Helm chart for ServeM documentation server
+description: Helm chart for ServeMD documentation server
 type: application
 version: 1.0.0
 appVersion: "1.0.0"

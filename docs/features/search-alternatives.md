@@ -2,7 +2,7 @@
 
 ## Current Status: Whoosh-Reloaded ✅
 
-ServeM currently uses [Whoosh-Reloaded](https://pypi.org/project/Whoosh-Reloaded/) (v2.7.5) for full-text search in the MCP (Model Context Protocol) feature. Whoosh-Reloaded is a community-maintained fork of the original Whoosh library with Python 3.x compatibility fixes.
+ServeMD currently uses [Whoosh-Reloaded](https://pypi.org/project/Whoosh-Reloaded/) (v2.7.5) for full-text search in the MCP (Model Context Protocol) feature. Whoosh-Reloaded is a community-maintained fork of the original Whoosh library with Python 3.x compatibility fixes.
 
 ### Why Whoosh-Reloaded?
 
@@ -10,7 +10,7 @@ ServeM currently uses [Whoosh-Reloaded](https://pypi.org/project/Whoosh-Reloaded
 - **Drop-in replacement**: Compatible API with original Whoosh
 - **Pure Python**: No compilation or binary dependencies needed
 - **Battle-tested**: Based on mature, well-tested Whoosh codebase
-- **Works well**: Stable and performant for ServeM's use case
+- **Works well**: Stable and performant for ServeMD's use case
 
 ### Migration from Original Whoosh
 
@@ -28,7 +28,7 @@ No code changes required - it's a drop-in replacement!
 
 ## Maintenance Status
 
-**Note**: While Whoosh-Reloaded is marked as "no longer maintained" (as of 2024), the v2.7.5 release includes all necessary fixes for modern Python versions. The library is stable and works perfectly for ServeM's needs.
+**Note**: While Whoosh-Reloaded is marked as "no longer maintained" (as of 2024), the v2.7.5 release includes all necessary fixes for modern Python versions. The library is stable and works perfectly for ServeMD's needs.
 
 ## Recommended Alternative: Tantivy
 
@@ -110,11 +110,11 @@ results = searcher.search(query, 10)
 ### Elasticsearch / OpenSearch
 
 - **Pros**: Enterprise-grade, distributed, feature-rich
-- **Cons**: Requires separate service, overkill for ServeM's use case
+- **Cons**: Requires separate service, overkill for ServeMD's use case
 
 ## Recommendation
 
-**Short term**: Continue using Whoosh with SyntaxWarning suppression. It works well for ServeM's use case.
+**Short term**: Continue using Whoosh with SyntaxWarning suppression. It works well for ServeMD's use case.
 
 **Long term**: Consider migrating to Tantivy when:
 - You need better performance at scale

@@ -1,4 +1,4 @@
-# ServeM User Dockerfile Template
+# ServeMD User Dockerfile Template
 # 
 # This Dockerfile bundles your documentation into a standalone container.
 # 
