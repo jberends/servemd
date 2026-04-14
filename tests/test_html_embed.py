@@ -100,3 +100,66 @@ async def test_raw_route_rejects_traversal(temp_docs):
             response = await client.get("/raw/%2e%2e%2f%2e%2e%2fetc%2fpasswd")
 
     assert response.status_code == 404
+
+
+@pytest.mark.asyncio
+async def test_html_file_served_in_iframe(temp_docs):
+    """GET /embed.html (no embed.md) returns template with iframe pointing to /raw/embed.html."""
+    from docs_server import config
+
+    with (
+        patch("docs_server.main.settings") as mock_settings,
+        patch.object(config.settings, "DOCS_ROOT", temp_docs),
+        patch.object(config.settings, "CACHE_ROOT", temp_docs / "cache"),
+    ):
+        mock_settings.DOCS_ROOT = temp_docs
+        mock_settings.CACHE_ROOT = temp_docs / "cache"
+        mock_settings.MCP_ENABLED = False
+        mock_settings.SERVEMD_BRANDING_ENABLED = True
+        mock_settings.BASE_URL = None
+
+        async with AsyncClient(
+            transport=ASGITransport(app=app),
+            base_url="http://localhost:8080",
+        ) as client:
+            response = await client.get("/embed.html")
+
+    assert response.status_code == 200
+    html = response.text
+    assert "<iframe" in html
+    assert "/raw/embed.html" in html
+    assert "html-embed-frame" in html
+    # Template chrome should be present
+    assert "<!DOCTYPE html>" in html
+    assert "sidebar" in html or "topbar" in html
+
+
+@pytest.mark.asyncio
+async def test_md_wins_over_html(temp_docs):
+    """When both embed.md and embed.html exist, markdown is rendered (no iframe)."""
+    from docs_server import config
+
+    # Add a .md file alongside the .html
+    (temp_docs / "embed.md").write_text("# Embed MD\n\nThis is markdown.")
+
+    with (
+        patch("docs_server.main.settings") as mock_settings,
+        patch.object(config.settings, "DOCS_ROOT", temp_docs),
+        patch.object(config.settings, "CACHE_ROOT", temp_docs / "cache"),
+    ):
+        mock_settings.DOCS_ROOT = temp_docs
+        mock_settings.CACHE_ROOT = temp_docs / "cache"
+        mock_settings.MCP_ENABLED = False
+        mock_settings.SERVEMD_BRANDING_ENABLED = True
+        mock_settings.BASE_URL = None
+
+        async with AsyncClient(
+            transport=ASGITransport(app=app),
+            base_url="http://localhost:8080",
+        ) as client:
+            response = await client.get("/embed.html")
+
+    assert response.status_code == 200
+    html = response.text
+    assert "<iframe" not in html
+    assert "Embed MD" in html

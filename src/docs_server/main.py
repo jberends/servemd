@@ -7,6 +7,7 @@ Inspired by Nuxt UI design system and documentation patterns.
 import logging
 import re
 from contextlib import asynccontextmanager
+from pathlib import Path
 
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, PlainTextResponse, RedirectResponse
@@ -489,6 +490,32 @@ async def serve_custom_css():
     )
 
 
+def _serve_html_in_iframe(path: str, file_path: Path) -> HTMLResponse:
+    """Wrap a raw HTML file from DOCS_ROOT in the doc template via an iframe."""
+    navigation = parse_sidebar_navigation()
+    topbar_sections = parse_topbar_links()
+
+    title = f"{file_path.stem.replace('_', ' ').title()} - Documentation"
+    current_path = f"/{path}" if path and not path.startswith("/") else path
+
+    iframe_content = f'<iframe src="/raw/{path}" class="html-embed-frame" title="{file_path.stem}"></iframe>'
+
+    full_html = create_html_template(
+        iframe_content,
+        title,
+        current_path,
+        navigation,
+        topbar_sections,
+        toc_items=[],
+        show_search=settings.MCP_ENABLED,
+        show_branding=settings.SERVEMD_BRANDING_ENABLED,
+        page_actions=None,
+        custom_css_url="/custom.css" if get_custom_css_path() else None,
+    )
+
+    return HTMLResponse(content=full_html)
+
+
 @app.get("/raw/{path:path}")
 async def serve_raw_file(path: str):
     """
@@ -535,6 +562,10 @@ async def serve_content(path: str, request: Request):
         file_path = get_file_path(md_path)
 
         if not file_path:
+            # Fallback: check if a raw .html file exists in DOCS_ROOT
+            html_file_path = get_file_path(path)
+            if html_file_path:
+                return _serve_html_in_iframe(path, html_file_path)
             raise HTTPException(status_code=404, detail="File not found")
 
         # Check cache first
