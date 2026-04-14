@@ -642,6 +642,22 @@ def create_html_template(
     var MIN_CHARS = 3;
     var DEBOUNCE_MS = 300;
 
+    function addHighlightToLinks(container, query) {
+        if (!query) return;
+        var encoded = encodeURIComponent(query);
+        var links = container.querySelectorAll('a.search-result-title');
+        for (var i = 0; i < links.length; i++) {
+            var href = links[i].getAttribute('href');
+            if (!href || href.indexOf('highlight=') !== -1) continue;
+            var anchorIdx = href.indexOf('#');
+            if (anchorIdx !== -1) {
+                links[i].href = href.substring(0, anchorIdx) + '?highlight=' + encoded + href.substring(anchorIdx);
+            } else {
+                links[i].href = href + '?highlight=' + encoded;
+            }
+        }
+    }
+
     function doSearch(query) {
         if (currentXHR) { currentXHR.abort(); currentXHR = null; }
         if (!query || query.length < MIN_CHARS) {
@@ -662,6 +678,7 @@ def create_html_template(
                 try {
                     var data = JSON.parse(xhr.responseText);
                     resultsDiv.innerHTML = data.html || "<p class='search-no-results'>No results.</p>";
+                    addHighlightToLinks(resultsDiv, query);
                 } catch(e) {
                     resultsDiv.innerHTML = "<p class='search-no-results'>Error parsing results.</p>";
                 }
@@ -695,6 +712,12 @@ def create_html_template(
         if (history.replaceState) history.replaceState(null, '', url);
         doSearch(q);
     });
+
+    // Attach ?highlight= to server-rendered results on initial page load
+    var initialQuery = (input.value || '').trim();
+    if (initialQuery) {
+        addHighlightToLinks(resultsDiv, initialQuery);
+    }
 })();
 </script>"""
 

@@ -75,17 +75,10 @@ def format_search_results_human(results: list[Any], query: str = "") -> str:
     parts: list[str] = [f"<p class='search-result-count'>Found {count} result{'s' if count != 1 else ''}:</p>"]
 
     for result in results:
-        base_url = result.url if (hasattr(result, "url") and result.url) else path_to_doc_url(result.path)
-
-        if query:
-            encoded_query = quote(query, safe="")
-            if "#" in base_url:
-                url_before_anchor, anchor_fragment = base_url.split("#", 1)
-                url = f"{url_before_anchor}?highlight={encoded_query}#{anchor_fragment}"
-            else:
-                url = f"{base_url}?highlight={encoded_query}"
-        else:
-            url = base_url
+        # Use the result's pre-computed URL (includes anchor if matched a heading).
+        # The ?highlight= param is added client-side by the search page JS so that
+        # user-provided query data never flows through the server-side HTML builder.
+        url = result.url if (hasattr(result, "url") and result.url) else path_to_doc_url(result.path)
 
         safe_title = html_escape(result.title)
         safe_path = html_escape(result.path)

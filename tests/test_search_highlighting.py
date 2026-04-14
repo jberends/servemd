@@ -52,8 +52,16 @@ def test_highlight_script_contains_escaped_term(client_with_docs):
     assert "<script>" not in response.text.split("highlightSearchTerms")[1][:200]
 
 
-def test_search_result_url_includes_highlight_param(tmp_path, monkeypatch):
-    """format_search_results_human appends ?highlight=<query> to result URLs."""
+def test_search_page_script_has_add_highlight_to_links(client_with_docs):
+    """The search page HTML includes the client-side addHighlightToLinks helper."""
+    response = client_with_docs.get("/search?q=authentication")
+    assert response.status_code == 200
+    assert "addHighlightToLinks" in response.text
+
+
+def test_search_result_url_uses_clean_url(tmp_path, monkeypatch):
+    """format_search_results_human uses the result URL as-is (no server-side ?highlight=).
+    The ?highlight= param is added client-side by the search page JS."""
     from docs_server.helpers import format_search_results_human
     from docs_server.mcp.search import SearchResult
 
@@ -70,11 +78,12 @@ def test_search_result_url_includes_highlight_param(tmp_path, monkeypatch):
     ]
 
     html = format_search_results_human(results, query="authentication")
-    assert "?highlight=authentication" in html
+    assert "href='/use_cases.html'" in html
+    assert "?highlight=" not in html
 
 
-def test_search_result_url_with_anchor_gets_highlight_before_anchor(tmp_path, monkeypatch):
-    """When result has an anchor, highlight param is added before the #."""
+def test_search_result_url_with_anchor_preserved_clean(tmp_path, monkeypatch):
+    """When result has an anchor, the clean URL (path#anchor) is used without ?highlight=."""
     from docs_server.helpers import format_search_results_human
     from docs_server.mcp.search import SearchResult
 
@@ -91,5 +100,5 @@ def test_search_result_url_with_anchor_gets_highlight_before_anchor(tmp_path, mo
     ]
 
     html = format_search_results_human(results, query="UC-2-002")
-    # highlight param must come before the anchor fragment
-    assert "?highlight=UC-2-002#uc-2-002-manage-template-versions" in html
+    assert "href='/use_cases.html#uc-2-002-manage-template-versions'" in html
+    assert "?highlight=" not in html
