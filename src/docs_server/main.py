@@ -426,10 +426,11 @@ async def _search_json_response(query: str) -> JSONResponse:
         {
             "title": r.title,
             "path": r.path,
-            "url": path_to_doc_url(r.path),
+            "url": r.url if (hasattr(r, "url") and r.url) else path_to_doc_url(r.path),
             "snippet": r.snippet,
             "score": round(r.score, 2),
             "category": r.category,
+            "anchor": r.anchor if hasattr(r, "anchor") else "",
         }
         for r in results
     ]
@@ -568,8 +569,8 @@ async def serve_raw_file(path: str):
 
     suffix = file_path.suffix.lower()
     media_types = {
-        ".html": "text/html",
-        ".htm": "text/html",
+        ".html": "text/html; charset=utf-8",
+        ".htm": "text/html; charset=utf-8",
         ".css": "text/css",
         ".js": "application/javascript",
         ".json": "application/json",
@@ -581,13 +582,17 @@ async def serve_raw_file(path: str):
     }
     media_type = media_types.get(suffix, "application/octet-stream")
 
+    headers = {}
+    if suffix in (".html", ".htm"):
+        headers["X-Frame-Options"] = "SAMEORIGIN"
+
     safe_log_path = path.replace("\r", "").replace("\n", "")
     logger.debug(f"Serving raw file: {safe_log_path} ({media_type})")
-    return FileResponse(path=str(file_path), media_type=media_type)
+    return FileResponse(path=str(file_path), media_type=media_type, headers=headers)
 
 
 @app.get("/{path:path}")
-async def serve_content(path: str, request: Request):
+async def serve_content(path: str, request: Request, highlight: str = ""):
     """
     Main content serving endpoint with dual routing:
     - .md files: serve raw markdown
@@ -609,11 +614,12 @@ async def serve_content(path: str, request: Request):
                 return _serve_html_in_iframe(path, html_file_path)
             raise HTTPException(status_code=404, detail="File not found")
 
-        # Check cache first
-        cached_html = await get_cached_html(file_path)
-        if cached_html:
-            logger.debug(f"Serving cached HTML: {path}")
-            return HTMLResponse(content=cached_html)
+        # Check cache first — skip if highlight parameter present
+        if not highlight:
+            cached_html = await get_cached_html(file_path)
+            if cached_html:
+                logger.debug(f"Serving cached HTML: {path}")
+                return HTMLResponse(content=cached_html)
 
         # Read and render markdown
         try:
@@ -665,10 +671,12 @@ async def serve_content(path: str, request: Request):
                 show_branding=settings.SERVEMD_BRANDING_ENABLED,
                 page_actions=page_actions,
                 custom_css_url="/custom.css" if get_custom_css_path() else None,
+                highlight_term=highlight,
             )
 
-            # Cache the rendered HTML
-            await save_cached_html(file_path, full_html)
+            # Cache the rendered HTML only for non-highlighted views
+            if not highlight:
+                await save_cached_html(file_path, full_html)
 
             logger.info(f"Rendered and cached: {path}")
             return HTMLResponse(content=full_html)

@@ -286,6 +286,7 @@ def create_html_template(
     show_branding: bool = True,
     page_actions: dict[str, str] | None = None,
     custom_css_url: str | None = None,
+    highlight_term: str = "",
 ) -> str:
     """
     Create a complete HTML document with sidebar navigation and topbar.
@@ -408,11 +409,7 @@ def create_html_template(
 
         sidebar_html += "</div>"
         if show_branding:
-            sidebar_html += (
-                "<div class='servemd-branding'>"
-                '<a href="/about_servemd">Powered by servemd</a>'
-                "</div>"
-            )
+            sidebar_html += "<div class='servemd-branding'><a href=\"/about_servemd\">Powered by servemd</a></div>"
         sidebar_html += "</nav>"
 
     topbar_html = ""
@@ -744,6 +741,74 @@ def create_html_template(
         if not h1_found:
             # No h1 found, prepend actions at start
             final_content = f'<div class="content-header-actions">{actions_html}</div>{content}'
+
+    highlight_script = ""
+    if highlight_term:
+        safe_highlight_term = html.escape(highlight_term, quote=True)
+        highlight_script = f"""<script>
+(function() {{
+    var searchTerm = "{safe_highlight_term}";
+    if (!searchTerm) return;
+
+    function highlightSearchTerms(term) {{
+        var content = document.querySelector('.content');
+        if (!content) return;
+
+        var escapedTerm = term.replace(/[.*+?^${{}}()|[\\]\\\\]/g, '\\\\$&');
+        var pattern = new RegExp('(' + escapedTerm + ')', 'gi');
+
+        var walker = document.createTreeWalker(
+            content,
+            NodeFilter.SHOW_TEXT,
+            {{
+                acceptNode: function(node) {{
+                    var parent = node.parentElement;
+                    if (!parent) return NodeFilter.FILTER_REJECT;
+                    var tag = parent.tagName.toLowerCase();
+                    if (tag === 'script' || tag === 'style' || tag === 'mark') {{
+                        return NodeFilter.FILTER_REJECT;
+                    }}
+                    if (pattern.test(node.textContent)) {{
+                        return NodeFilter.FILTER_ACCEPT;
+                    }}
+                    return NodeFilter.FILTER_REJECT;
+                }}
+            }}
+        );
+
+        var nodesToReplace = [];
+        var node;
+        while ((node = walker.nextNode())) {{
+            nodesToReplace.push(node);
+        }}
+
+        nodesToReplace.forEach(function(textNode) {{
+            var text = textNode.textContent;
+            if (!pattern.test(text)) return;
+            var temp = document.createElement('span');
+            temp.innerHTML = text.replace(pattern, '<mark class="search-highlight">$1</mark>');
+            var parent = textNode.parentNode;
+            while (temp.firstChild) {{
+                parent.insertBefore(temp.firstChild, textNode);
+            }}
+            parent.removeChild(textNode);
+        }});
+
+        if (!window.location.hash) {{
+            var first = content.querySelector('.search-highlight');
+            if (first) {{
+                first.scrollIntoView({{ behavior: 'smooth', block: 'center' }});
+            }}
+        }}
+    }}
+
+    if (document.readyState === 'loading') {{
+        document.addEventListener('DOMContentLoaded', function() {{ highlightSearchTerms(searchTerm); }});
+    }} else {{
+        highlightSearchTerms(searchTerm);
+    }}
+}})();
+</script>"""
 
     safe_title = html.escape(title or "", quote=True)
     custom_css_link = (
@@ -1981,6 +2046,7 @@ def create_html_template(
     {search_script}
     {search_page_script}
     {mobile_menu_script}
+    {highlight_script}
     <script>
     (function() {{
         var copyLinkBtn = document.querySelector('.page-actions-item[data-action="copy-link"]');

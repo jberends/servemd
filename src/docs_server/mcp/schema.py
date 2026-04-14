@@ -6,7 +6,7 @@ Note: Index building implementation is in Phase 2 (indexer.py).
 """
 
 from whoosh.analysis import LowercaseFilter, RegexTokenizer, StemFilter, StopFilter
-from whoosh.fields import DATETIME, ID, NUMERIC, TEXT, Schema
+from whoosh.fields import DATETIME, ID, NUMERIC, STORED, TEXT, Schema
 
 # Whitespace-only tokenizer: preserves hyphenated identifiers like UC-2-002
 # as a single token so they can be matched exactly.
@@ -53,6 +53,7 @@ def create_whoosh_schema() -> Schema:
         headings=TEXT(analyzer=_prose_analyzer, stored=True, field_boost=1.5),
         identifiers=TEXT(analyzer=_identifier_analyzer, stored=True, field_boost=5.0),
         path_text=TEXT(analyzer=_path_analyzer, stored=False),
+        identifier_anchors=STORED(),
         category=ID(stored=True),
         modified=DATETIME(stored=True, sortable=True),
         size=NUMERIC(stored=True),
@@ -60,4 +61,4 @@ def create_whoosh_schema() -> Schema:
 
 
 # Schema version for cache invalidation — bump whenever field definitions change.
-SCHEMA_VERSION = "3.0"
+SCHEMA_VERSION = "3.1"

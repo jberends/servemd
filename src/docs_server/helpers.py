@@ -75,7 +75,18 @@ def format_search_results_human(results: list[Any], query: str = "") -> str:
     parts: list[str] = [f"<p class='search-result-count'>Found {count} result{'s' if count != 1 else ''}:</p>"]
 
     for result in results:
-        url = path_to_doc_url(result.path)
+        base_url = result.url if (hasattr(result, "url") and result.url) else path_to_doc_url(result.path)
+
+        if query:
+            encoded_query = quote(query, safe="")
+            if "#" in base_url:
+                url_before_anchor, anchor_fragment = base_url.split("#", 1)
+                url = f"{url_before_anchor}?highlight={encoded_query}#{anchor_fragment}"
+            else:
+                url = f"{base_url}?highlight={encoded_query}"
+        else:
+            url = base_url
+
         safe_title = html_escape(result.title)
         safe_path = html_escape(result.path)
         # Strip Whoosh HTML, escape, then we apply our own highlight
