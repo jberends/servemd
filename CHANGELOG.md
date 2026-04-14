@@ -5,7 +5,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## UNRELEASED
+## v1.2.2 (2026-04-14)
 
 ### Fixed
 
@@ -15,6 +15,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - :dart: **Direct anchor links in search results** — Searching for a structured identifier (e.g. `UC-2-002`) now returns a result URL that points directly to the matching heading anchor (e.g. `/page.html#uc-2-002-manage-template-versions`) instead of just the top of the page. The search index extracts an identifier→anchor mapping during indexing and stores it in a new `identifier_anchors` Whoosh field.
 - :mag: **Highlight-on-page for search terms** — Clicking a search result appends `?highlight=<query>` to the destination URL. The page injects client-side JavaScript that wraps all occurrences of the search term in `<mark class="search-highlight">` (pale yellow, matching the existing search results highlight style) and smoothly scrolls to the first match when no anchor is present — mimicking browser Cmd-F/Ctrl-F behaviour.
+
+## v1.2.1 (2026-04-14)
+
+- spelling fixes in documentation
 
 ## v1.2.0 (2026-04-14)
 
