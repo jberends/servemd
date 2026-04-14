@@ -489,6 +489,35 @@ async def serve_custom_css():
     )
 
 
+@app.get("/raw/{path:path}")
+async def serve_raw_file(path: str):
+    """
+    Serve a file from DOCS_ROOT as-is, without template wrapping.
+    Used by the iframe embed for HTML files to avoid recursive template rendering.
+    """
+    file_path = get_file_path(path)
+    if not file_path:
+        raise HTTPException(status_code=404, detail="File not found")
+
+    suffix = file_path.suffix.lower()
+    media_types = {
+        ".html": "text/html",
+        ".htm": "text/html",
+        ".css": "text/css",
+        ".js": "application/javascript",
+        ".json": "application/json",
+        ".png": "image/png",
+        ".jpg": "image/jpeg",
+        ".jpeg": "image/jpeg",
+        ".gif": "image/gif",
+        ".svg": "image/svg+xml",
+    }
+    media_type = media_types.get(suffix, "application/octet-stream")
+
+    logger.debug(f"Serving raw file: {path} ({media_type})")
+    return FileResponse(path=str(file_path), media_type=media_type)
+
+
 @app.get("/{path:path}")
 async def serve_content(path: str, request: Request):
     """
