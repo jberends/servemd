@@ -874,6 +874,13 @@ def create_html_template(
             border: 1px solid var(--color-gray-200);
         }}
 
+        .html-embed-frame {{
+            width: 100%;
+            border: none;
+            min-height: 80vh;
+            display: block;
+        }}
+
         .toc-sidebar {{
             width: 240px;
             flex-shrink: 0;

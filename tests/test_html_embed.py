@@ -163,3 +163,14 @@ async def test_md_wins_over_html(temp_docs):
     html = response.text
     assert "<iframe" not in html
     assert "Embed MD" in html
+
+
+def test_iframe_css_present_in_template():
+    """The html-embed-frame CSS rule is present in the template output."""
+    from docs_server.templates import create_html_template
+
+    content = '<iframe src="/raw/foo.html" class="html-embed-frame" title="foo"></iframe>'
+    result = create_html_template(content)
+
+    assert ".html-embed-frame" in result
+    assert "min-height: 80vh" in result
