@@ -545,7 +545,8 @@ async def serve_raw_file(path: str):
     }
     media_type = media_types.get(suffix, "application/octet-stream")
 
-    logger.debug(f"Serving raw file: {path} ({media_type})")
+    safe_log_path = path.replace("\r", "").replace("\n", "")
+    logger.debug(f"Serving raw file: {safe_log_path} ({media_type})")
     return FileResponse(path=str(file_path), media_type=media_type)
 
 
