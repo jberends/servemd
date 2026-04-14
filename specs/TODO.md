@@ -10,9 +10,9 @@
 
 ### Copy Page Dropdown with AI Links (Nuxt UI-style)
 
-- [ ] Add "Copy page" dropdown to the right of the page title (see [TODO_9_copy_page_ai_links.md](TODO_9_copy_page_ai_links.md))
-- [ ] Options: Copy Markdown link, View as Markdown, Open in ChatGPT, Open in Claude
-- [ ] URL formats: ChatGPT `?prompt=Read+{raw_md_url}+so+I+can+ask+questions+about+it.`; Claude `?q=Read%20{raw_md_url}%20so%20I%20can%20ask%20questions%20about%20it.`
+- [X] Add "Copy page" dropdown to the right of the page title (see [TODO_9_copy_page_ai_links.md](TODO_9_copy_page_ai_links.md))
+- [X] Options: Copy Markdown link, View as Markdown, Open in ChatGPT, Open in Claude
+- [X] URL formats: ChatGPT `?prompt=Read+{raw_md_url}+so+I+can+ask+questions+about+it.`; Claude `?q=Read%20{raw_md_url}%20so%20I%20can%20ask%20questions%20about%20it.`
 
 ---
 
@@ -96,6 +96,11 @@ These are ideas for potential future improvements:
 - [ ] Version comparison
 - [ ] Search within page
 - [ ] Copy code button
+- [ ] Add favicon (e.g. Tabler "book" icon or similar)
+
+### MCP Installation UX
+- [ ] One-click MCP installation links for Claude Desktop and Cursor
+- [ ] Documentation page covering MCP setup for both clients
 
 ### Developer Experience
 - [ ] Hot reload for documentation changes

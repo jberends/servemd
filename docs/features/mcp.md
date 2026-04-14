@@ -80,6 +80,21 @@ Search documentation with full-text search powered by Whoosh.
 - Field-specific: `title:API`, `content:authentication`
 - Phrase search: `"rate limiting"`
 
+**Searching structured identifiers:**
+
+Structured IDs found in headings (`UC-2-002`, `AUTH-01`, `G-02`, `KEV-123`, `#002` …) are indexed as exact tokens with a high relevance boost. Type the identifier as-is — no quotes needed:
+
+```
+UC-2-002          → finds the heading that defines it (top result)
+AUTH-01           → finds the auth screen / route entry
+KECMAP2-1234      → works even when the prefix contains digits
+```
+
+Rules of thumb:
+- **Exact beats fuzzy** for IDs — skip the `~` suffix
+- **Mixed letter+digit tokens** (e.g. `v2`, `OAuth2`, `Screen01`) are also boosted when they appear in headings
+- **Filename fragments** work too: `AUTH_01` matches a file like `screens/AUTH_01_login.md`
+
 **Request:**
 ```json
 {
@@ -222,9 +237,11 @@ ServeMD builds a Whoosh search index on startup:
 
 The index includes:
 - Document paths (unique identifier)
-- Titles (2x boost for relevance)
+- Titles (2× boost for relevance)
 - Full content (for search and snippets)
-- Section headings (1.5x boost)
+- Section headings h2–h4 (1.5× boost) — h3/h4 entries are where individual use-case and screen IDs live
+- Structured identifiers extracted from headings (5× boost) — any mixed letter+digit token such as `UC-2-002`, `AUTH-01`, `G-02`, `KECMAP2-1234`
+- File path fragments — each path segment is tokenised so `AUTH_01` matches the filename
 - Categories (from directory structure)
 
 ## Integration Examples
@@ -425,6 +442,7 @@ MCP_RATE_LIMIT_REQUESTS=300 MCP_RATE_LIMIT_WINDOW=60
 - Verify files have `.md` extension
 - Try broader search terms
 - Check for typos (or use fuzzy search: `term~`)
+- For structured IDs (`UC-2-002`, `AUTH-01` …) type the identifier exactly — they are indexed verbatim from headings and match with high precision
 
 **Debug:** Run `uv run python -m docs_server.mcp.cli info` to check indexed document count
 
