@@ -1,7 +1,5 @@
 """Tests for search term highlighting on destination pages."""
 
-from pathlib import Path
-
 import pytest
 from fastapi.testclient import TestClient
 
@@ -51,13 +49,13 @@ def test_highlight_script_contains_escaped_term(client_with_docs):
     response = client_with_docs.get('/test.html?highlight=auth"<script>')
     assert response.status_code == 200
     # The raw injection string should NOT appear unescaped
-    assert '<script>' not in response.text.split("highlightSearchTerms")[1][:200]
+    assert "<script>" not in response.text.split("highlightSearchTerms")[1][:200]
 
 
 def test_search_result_url_includes_highlight_param(tmp_path, monkeypatch):
     """format_search_results_human appends ?highlight=<query> to result URLs."""
-    from docs_server.mcp.search import SearchResult
     from docs_server.helpers import format_search_results_human
+    from docs_server.mcp.search import SearchResult
 
     results = [
         SearchResult(
@@ -77,8 +75,8 @@ def test_search_result_url_includes_highlight_param(tmp_path, monkeypatch):
 
 def test_search_result_url_with_anchor_gets_highlight_before_anchor(tmp_path, monkeypatch):
     """When result has an anchor, highlight param is added before the #."""
-    from docs_server.mcp.search import SearchResult
     from docs_server.helpers import format_search_results_human
+    from docs_server.mcp.search import SearchResult
 
     results = [
         SearchResult(
