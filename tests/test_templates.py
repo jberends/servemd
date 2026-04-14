@@ -522,9 +522,7 @@ def test_create_html_template_mobile_menu_absent_when_no_topbar_and_no_nav():
     from docs_server.templates import create_html_template
 
     topbar_sections = {"left": [], "middle": [], "right": []}
-    result = create_html_template(
-        "<p>Content</p>", topbar_sections=topbar_sections, show_search=False, navigation=[]
-    )
+    result = create_html_template("<p>Content</p>", topbar_sections=topbar_sections, show_search=False, navigation=[])
 
     # The CSS rule name appears in the stylesheet, but the HTML element must not be rendered
     assert "class='mobile-menu-toggle'" not in result
@@ -617,5 +615,3 @@ def test_create_html_template_mobile_css_included():
     assert ".mobile-menu-toggle" in result
     assert ".hamburger-bar" in result
     assert ".mobile-menu" in result
-
-

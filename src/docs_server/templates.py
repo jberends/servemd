@@ -285,7 +285,9 @@ def create_html_template(
                 elif _stype == "group_with_children":
                     _active = " active" if current_path == _section["link"] else ""
                     mobile_menu_html += "<div class='nav-group'>"
-                    mobile_menu_html += f"<a href='{_section['link']}' class='nav-group-header{_active}'>{_section['title']}</a>"
+                    mobile_menu_html += (
+                        f"<a href='{_section['link']}' class='nav-group-header{_active}'>{_section['title']}</a>"
+                    )
                     mobile_menu_html += "<ul class='nav-group-links'>"
                     for _child in _section.get("children", []):
                         _cactive = " active" if current_path == _child["link"] else ""
