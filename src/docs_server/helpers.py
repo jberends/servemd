@@ -136,12 +136,15 @@ def is_safe_path(path: str, base_path: Path) -> bool:
     Prevents directory traversal attacks.
     """
     try:
-        # Resolve absolute paths
+        # Normalize the path string first to expose any traversal sequences
+        # (e.g. "a/../../etc" → "../etc") and reject them before constructing
+        # a Path object, giving the static analyser a provable early-exit.
+        norm = os.path.normpath(path)
+        if os.path.isabs(norm) or norm.startswith(".."):
+            return False
         abs_base = base_path.resolve()
-        abs_path = (base_path / path).resolve()
-
-        # Check if the resolved path is within the base directory
-        # Use commonpath for compatibility with older Python versions
+        abs_path = (abs_base / norm).resolve()  # lgtm[py/path-injection] - norm is validated above
+        # Defence-in-depth: also confirm resolved path stays inside base_path.
         return os.path.commonpath([abs_base, abs_path]) == str(abs_base)
     except (ValueError, OSError):
         return False
