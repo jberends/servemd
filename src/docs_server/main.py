@@ -426,10 +426,11 @@ async def _search_json_response(query: str) -> JSONResponse:
         {
             "title": r.title,
             "path": r.path,
-            "url": path_to_doc_url(r.path),
+            "url": r.url if (hasattr(r, "url") and r.url) else path_to_doc_url(r.path),
             "snippet": r.snippet,
             "score": round(r.score, 2),
             "category": r.category,
+            "anchor": r.anchor if hasattr(r, "anchor") else "",
         }
         for r in results
     ]
@@ -536,7 +537,7 @@ def _serve_html_in_iframe(path: str, file_path: Path) -> HTMLResponse:
     if not re.fullmatch(r"[A-Za-z0-9._\-/]+", path):
         raise HTTPException(status_code=400, detail="Invalid path")
 
-    safe_src = quote(path, safe="/")
+    safe_src = html.escape(quote(path, safe="/"), quote=True)
     safe_title = html.escape(file_path.stem, quote=True)
     iframe_content = f'<iframe src="/raw/{safe_src}" class="html-embed-frame" title="{safe_title}"></iframe>'
 
@@ -568,8 +569,8 @@ async def serve_raw_file(path: str):
 
     suffix = file_path.suffix.lower()
     media_types = {
-        ".html": "text/html",
-        ".htm": "text/html",
+        ".html": "text/html; charset=utf-8",
+        ".htm": "text/html; charset=utf-8",
         ".css": "text/css",
         ".js": "application/javascript",
         ".json": "application/json",
@@ -581,13 +582,17 @@ async def serve_raw_file(path: str):
     }
     media_type = media_types.get(suffix, "application/octet-stream")
 
+    headers = {}
+    if suffix in (".html", ".htm"):
+        headers["X-Frame-Options"] = "SAMEORIGIN"
+
     safe_log_path = path.replace("\r", "").replace("\n", "")
     logger.debug(f"Serving raw file: {safe_log_path} ({media_type})")
-    return FileResponse(path=str(file_path), media_type=media_type)
+    return FileResponse(path=str(file_path), media_type=media_type, headers=headers)
 
 
 @app.get("/{path:path}")
-async def serve_content(path: str, request: Request):
+async def serve_content(path: str, request: Request, highlight: str = ""):
     """
     Main content serving endpoint with dual routing:
     - .md files: serve raw markdown
@@ -609,11 +614,13 @@ async def serve_content(path: str, request: Request):
                 return _serve_html_in_iframe(path, html_file_path)
             raise HTTPException(status_code=404, detail="File not found")
 
-        # Check cache first
-        cached_html = await get_cached_html(file_path)
-        if cached_html:
-            logger.debug(f"Serving cached HTML: {path}")
-            return HTMLResponse(content=cached_html)
+        # Check cache first — skip if highlight parameter present
+        if not highlight:
+            cached_html = await get_cached_html(file_path)
+            if cached_html:
+                safe_log_path = path.replace("\r", "").replace("\n", "")
+                logger.debug(f"Serving cached HTML: {safe_log_path}")
+                return HTMLResponse(content=cached_html)
 
         # Read and render markdown
         try:
@@ -665,12 +672,15 @@ async def serve_content(path: str, request: Request):
                 show_branding=settings.SERVEMD_BRANDING_ENABLED,
                 page_actions=page_actions,
                 custom_css_url="/custom.css" if get_custom_css_path() else None,
+                highlight_term=highlight,
             )
 
-            # Cache the rendered HTML
-            await save_cached_html(file_path, full_html)
+            # Cache the rendered HTML only for non-highlighted views
+            if not highlight:
+                await save_cached_html(file_path, full_html)
 
-            logger.info(f"Rendered and cached: {path}")
+            safe_log_path = path.replace("\r", "").replace("\n", "")
+            logger.info("Rendered: %s", safe_log_path)
             return HTMLResponse(content=full_html)
 
         except (OSError, UnicodeDecodeError) as e:
@@ -686,7 +696,7 @@ async def serve_content(path: str, request: Request):
 
         try:
             content = file_path.read_text(encoding="utf-8")
-            logger.debug(f"Serving raw markdown: {path}")
+            logger.debug("Serving raw markdown: %s", path.replace("\r", "").replace("\n", ""))
             return PlainTextResponse(content=content, media_type="text/markdown")
         except (OSError, UnicodeDecodeError) as e:
             logger.error(f"Error reading file {file_path}: {e}")
@@ -715,7 +725,7 @@ async def serve_content(path: str, request: Request):
 
         media_type = media_types.get(suffix, "application/octet-stream")
 
-        logger.debug(f"Serving asset: {path} ({media_type})")
+        logger.debug("Serving asset: %s (%s)", path.replace("\r", "").replace("\n", ""), media_type)
         return FileResponse(path=str(file_path), media_type=media_type, filename=file_path.name)
 
 

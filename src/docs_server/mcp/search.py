@@ -16,6 +16,7 @@ from typing import TYPE_CHECKING
 from whoosh.qparser import FuzzyTermPlugin, MultifieldParser
 
 from ..config import settings
+from ..helpers import path_to_doc_url
 from .indexer import get_index_manager
 
 if TYPE_CHECKING:
@@ -60,6 +61,8 @@ class SearchResult:
     snippet: str
     score: float
     category: str = ""
+    anchor: str = ""
+    url: str = ""
 
 
 def search_docs(query: str, limit: int | None = None) -> list[SearchResult]:
@@ -126,8 +129,10 @@ def search_docs(query: str, limit: int | None = None) -> list[SearchResult]:
             hits = searcher.search(parsed_query, limit=limit)
 
             for hit in hits:
-                # Extract snippet with highlighting
-                snippet = _extract_snippet(hit, query)
+                snippet, anchor_id = _extract_snippet(hit, query)
+
+                doc_url = path_to_doc_url(hit["path"])
+                full_url = f"{doc_url}#{anchor_id}" if anchor_id else doc_url
 
                 results.append(
                     SearchResult(
@@ -136,6 +141,8 @@ def search_docs(query: str, limit: int | None = None) -> list[SearchResult]:
                         snippet=snippet,
                         score=hit.score,
                         category=hit.get("category", ""),
+                        anchor=anchor_id,
+                        url=full_url,
                     )
                 )
 
@@ -154,45 +161,50 @@ def search_docs(query: str, limit: int | None = None) -> list[SearchResult]:
         raise RuntimeError(f"Search failed: {e}") from e
 
 
-def _extract_snippet(hit, query: str) -> str:
+def _extract_snippet(hit, query: str) -> tuple[str, str]:
     """
-    Extract a relevant snippet from the search hit with highlighting.
+    Extract a relevant snippet and determine the anchor for identifier matches.
 
     Args:
         hit: Whoosh search hit object
-        query: Original search query for highlighting
+        query: Original search query
 
     Returns:
-        Snippet string with relevant content
+        Tuple of (snippet_text, anchor_id)
     """
+    import json
+
+    anchor_id = ""
     try:
-        # Try to get highlighted snippet from content_stored field
+        identifier_anchors_json = hit.get("identifier_anchors", "{}")
+        identifier_anchors = json.loads(identifier_anchors_json) if identifier_anchors_json else {}
+        query_lower = query.strip().lower()
+        if query_lower in identifier_anchors:
+            anchor_id = identifier_anchors[query_lower]
+    except Exception as e:
+        logger.warning(f"Error extracting anchor from hit: {e}")
+
+    try:
         snippet = hit.highlights("content_stored", top=1)
-
         if snippet:
-            # Clean up and return the snippet
-            return _clean_snippet(snippet)
+            return (_clean_snippet(snippet), anchor_id)
 
-        # Fall back to headings if no content match
         snippet = hit.highlights("headings", top=1)
         if snippet:
-            return _clean_snippet(snippet)
+            return (_clean_snippet(snippet), anchor_id)
 
-        # Last resort: return beginning of stored content
         content = hit.get("content_stored", "")
         if content:
-            # Return first N characters
             max_len = settings.MCP_SNIPPET_LENGTH
             if len(content) > max_len:
-                # Try to break at word boundary
                 content = content[:max_len].rsplit(" ", 1)[0] + "..."
-            return content
+            return (content, anchor_id)
 
-        return hit.get("title", "No content available")
+        return (hit.get("title", "No content available"), anchor_id)
 
     except Exception as e:
         logger.warning(f"Error extracting snippet: {e}")
-        return hit.get("title", "No snippet available")
+        return (hit.get("title", "No snippet available"), anchor_id)
 
 
 def _clean_snippet(snippet: str) -> str:

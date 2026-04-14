@@ -286,6 +286,7 @@ def create_html_template(
     show_branding: bool = True,
     page_actions: dict[str, str] | None = None,
     custom_css_url: str | None = None,
+    highlight_term: str = "",
 ) -> str:
     """
     Create a complete HTML document with sidebar navigation and topbar.
@@ -408,11 +409,7 @@ def create_html_template(
 
         sidebar_html += "</div>"
         if show_branding:
-            sidebar_html += (
-                "<div class='servemd-branding'>"
-                '<a href="/about_servemd">Powered by servemd</a>'
-                "</div>"
-            )
+            sidebar_html += "<div class='servemd-branding'><a href=\"/about_servemd\">Powered by servemd</a></div>"
         sidebar_html += "</nav>"
 
     topbar_html = ""
@@ -645,6 +642,22 @@ def create_html_template(
     var MIN_CHARS = 3;
     var DEBOUNCE_MS = 300;
 
+    function addHighlightToLinks(container, query) {
+        if (!query) return;
+        var encoded = encodeURIComponent(query);
+        var links = container.querySelectorAll('a.search-result-title');
+        for (var i = 0; i < links.length; i++) {
+            var href = links[i].getAttribute('href');
+            if (!href || href.indexOf('highlight=') !== -1) continue;
+            var anchorIdx = href.indexOf('#');
+            if (anchorIdx !== -1) {
+                links[i].href = href.substring(0, anchorIdx) + '?highlight=' + encoded + href.substring(anchorIdx);
+            } else {
+                links[i].href = href + '?highlight=' + encoded;
+            }
+        }
+    }
+
     function doSearch(query) {
         if (currentXHR) { currentXHR.abort(); currentXHR = null; }
         if (!query || query.length < MIN_CHARS) {
@@ -665,6 +678,7 @@ def create_html_template(
                 try {
                     var data = JSON.parse(xhr.responseText);
                     resultsDiv.innerHTML = data.html || "<p class='search-no-results'>No results.</p>";
+                    addHighlightToLinks(resultsDiv, query);
                 } catch(e) {
                     resultsDiv.innerHTML = "<p class='search-no-results'>Error parsing results.</p>";
                 }
@@ -698,6 +712,12 @@ def create_html_template(
         if (history.replaceState) history.replaceState(null, '', url);
         doSearch(q);
     });
+
+    // Attach ?highlight= to server-rendered results on initial page load
+    var initialQuery = (input.value || '').trim();
+    if (initialQuery) {
+        addHighlightToLinks(resultsDiv, initialQuery);
+    }
 })();
 </script>"""
 
@@ -744,6 +764,78 @@ def create_html_template(
         if not h1_found:
             # No h1 found, prepend actions at start
             final_content = f'<div class="content-header-actions">{actions_html}</div>{content}'
+
+    highlight_script = ""
+    if highlight_term:
+        # Store the term in a data attribute so no user input appears inside the <script> body.
+        # JavaScript reads it from the DOM, which auto-decodes HTML entities.
+        safe_highlight_data = html.escape(highlight_term, quote=True)
+        highlight_script = f"""<div id="servemd-highlight-config" data-term="{safe_highlight_data}" aria-hidden="true" style="display:none"></div>
+<script>
+(function() {{
+    var el = document.getElementById('servemd-highlight-config');
+    var searchTerm = el ? el.getAttribute('data-term') : '';
+    if (!searchTerm) return;
+
+    function highlightSearchTerms(term) {{
+        var content = document.querySelector('.content');
+        if (!content) return;
+
+        var escapedTerm = term.replace(/[.*+?^${{}}()|[\\]\\\\]/g, '\\\\$&');
+        var pattern = new RegExp('(' + escapedTerm + ')', 'gi');
+
+        var walker = document.createTreeWalker(
+            content,
+            NodeFilter.SHOW_TEXT,
+            {{
+                acceptNode: function(node) {{
+                    var parent = node.parentElement;
+                    if (!parent) return NodeFilter.FILTER_REJECT;
+                    var tag = parent.tagName.toLowerCase();
+                    if (tag === 'script' || tag === 'style' || tag === 'mark') {{
+                        return NodeFilter.FILTER_REJECT;
+                    }}
+                    if (pattern.test(node.textContent)) {{
+                        return NodeFilter.FILTER_ACCEPT;
+                    }}
+                    return NodeFilter.FILTER_REJECT;
+                }}
+            }}
+        );
+
+        var nodesToReplace = [];
+        var node;
+        while ((node = walker.nextNode())) {{
+            nodesToReplace.push(node);
+        }}
+
+        nodesToReplace.forEach(function(textNode) {{
+            var text = textNode.textContent;
+            if (!pattern.test(text)) return;
+            var temp = document.createElement('span');
+            temp.innerHTML = text.replace(pattern, '<mark class="search-highlight">$1</mark>');
+            var parent = textNode.parentNode;
+            while (temp.firstChild) {{
+                parent.insertBefore(temp.firstChild, textNode);
+            }}
+            parent.removeChild(textNode);
+        }});
+
+        if (!window.location.hash) {{
+            var first = content.querySelector('.search-highlight');
+            if (first) {{
+                first.scrollIntoView({{ behavior: 'smooth', block: 'center' }});
+            }}
+        }}
+    }}
+
+    if (document.readyState === 'loading') {{
+        document.addEventListener('DOMContentLoaded', function() {{ highlightSearchTerms(searchTerm); }});
+    }} else {{
+        highlightSearchTerms(searchTerm);
+    }}
+}})();
+</script>"""
 
     safe_title = html.escape(title or "", quote=True)
     custom_css_link = (
@@ -1981,6 +2073,7 @@ def create_html_template(
     {search_script}
     {search_page_script}
     {mobile_menu_script}
+    {highlight_script}
     <script>
     (function() {{
         var copyLinkBtn = document.querySelector('.page-actions-item[data-action="copy-link"]');

@@ -55,6 +55,7 @@ class DocumentInfo:
     content: str
     headings: list[str] = field(default_factory=list)
     identifiers: list[str] = field(default_factory=list)
+    identifier_anchors: dict[str, str] = field(default_factory=dict)
     category: str = ""
     modified: datetime = field(default_factory=lambda: datetime.now(UTC))
     size: int = 0
@@ -284,6 +285,7 @@ class WhooshSearchBackend(SearchBackend):
                 content_stored=doc.content,
                 headings=" ".join(doc.headings),
                 identifiers=" ".join(doc.identifiers),
+                identifier_anchors=json.dumps(doc.identifier_anchors),
                 path_text=doc.path,
                 category=doc.category,
                 modified=doc.modified,
@@ -429,6 +431,54 @@ def extract_identifiers(content: str) -> list[str]:
     except Exception as e:
         logger.warning(f"Error extracting identifiers: {e}")
         return []
+
+
+def generate_anchor_id(heading_text: str) -> str:
+    """
+    Generate an anchor ID from heading text, matching the markdown renderer.
+
+    Converts to lowercase, replaces spaces with hyphens, removes characters
+    that are not alphanumeric or hyphens, collapses consecutive hyphens.
+
+    Args:
+        heading_text: Raw heading text (e.g. "UC-2-002 Manage Template Versions")
+
+    Returns:
+        Anchor ID string (e.g. "uc-2-002-manage-template-versions")
+    """
+    anchor = heading_text.lower()
+    anchor = anchor.replace(" ", "-")
+    anchor = re.sub(r"[^a-z0-9\-]", "", anchor)
+    anchor = re.sub(r"-+", "-", anchor)
+    return anchor.strip("-")
+
+
+def extract_identifier_to_anchor_map(content: str) -> dict[str, str]:
+    """
+    Extract a mapping of identifier (lowercase) -> heading anchor ID.
+
+    Scans each heading line for identifiers (via _IDENTIFIER_RE). Each
+    identifier found in a heading is mapped to the anchor ID of that heading.
+
+    Args:
+        content: Raw markdown content
+
+    Returns:
+        Dict mapping identifier string to anchor ID string
+    """
+    try:
+        mapping: dict[str, str] = {}
+        for line in content.splitlines():
+            if line.startswith("#"):
+                heading_text = re.sub(r"^#+\s*", "", line).strip()
+                anchor_id = generate_anchor_id(heading_text)
+                for m in _IDENTIFIER_RE.finditer(line):
+                    identifier = m.group(0).lower()
+                    mapping[identifier] = anchor_id
+        return mapping
+    except Exception as e:
+        logger.warning(f"Error extracting identifier-anchor map: {e}")
+        return {}
 
 
 def extract_category(file_path: Path, docs_root: Path) -> str:
@@ -783,6 +833,7 @@ class SearchIndexManager:
                 content=content,
                 headings=extract_headings(content),
                 identifiers=extract_identifiers(content),
+                identifier_anchors=extract_identifier_to_anchor_map(content),
                 category=extract_category(file_path, self._docs_root),
                 modified=datetime.fromtimestamp(stat.st_mtime, tz=UTC),
                 size=stat.st_size,

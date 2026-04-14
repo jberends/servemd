@@ -6,7 +6,7 @@ Contains pure utility functions and navigation structure parsers.
 import logging
 import os
 import re
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 from typing import Any
 from urllib.parse import quote, unquote
 
@@ -75,7 +75,11 @@ def format_search_results_human(results: list[Any], query: str = "") -> str:
     parts: list[str] = [f"<p class='search-result-count'>Found {count} result{'s' if count != 1 else ''}:</p>"]
 
     for result in results:
-        url = path_to_doc_url(result.path)
+        # Use the result's pre-computed URL (includes anchor if matched a heading).
+        # The ?highlight= param is added client-side by the search page JS so that
+        # user-provided query data never flows through the server-side HTML builder.
+        url = result.url if (hasattr(result, "url") and result.url) else path_to_doc_url(result.path)
+
         safe_title = html_escape(result.title)
         safe_path = html_escape(result.path)
         # Strip Whoosh HTML, escape, then we apply our own highlight
@@ -83,8 +87,9 @@ def format_search_results_human(results: list[Any], query: str = "") -> str:
         safe_snippet = html_escape(plain_snippet) if plain_snippet else ""
         safe_category = html_escape(result.category) if result.category else ""
 
+        safe_url = html_escape(url, quote=True)
         card = "<div class='search-result-card'>"
-        card += f"<a href='{url}' class='search-result-title'>{safe_title}</a>"
+        card += f"<a href='{safe_url}' class='search-result-title'>{safe_title}</a>"
         if safe_category:
             card += f"<span class='search-result-category'>{safe_category}</span>"
         card += f"<span class='search-result-path'>{safe_path}</span>"
@@ -129,15 +134,34 @@ def is_safe_path(path: str, base_path: Path) -> bool:
     """
     Validate that the requested path is within the allowed directory boundaries.
     Prevents directory traversal attacks.
+
+    Strategy: split the path into components and apply os.path.basename to each
+    one (a CodeQL-recognised sanitiser).  Only the resulting clean tokens are
+    ever passed to pathlib, so no raw user data touches the Path constructor.
     """
     try:
-        # Resolve absolute paths
-        abs_base = base_path.resolve()
-        abs_path = (base_path / path).resolve()
+        parts = PurePosixPath(path).parts
+    except Exception:
+        return False
 
-        # Check if the resolved path is within the base directory
-        # Use commonpath for compatibility with older Python versions
-        return os.path.commonpath([abs_base, abs_path]) == str(abs_base)
+    sanitized: list[str] = []
+    for part in parts:
+        # os.path.basename is a recognised sanitiser – strips any leading directory
+        # prefix from a component.  We then explicitly reject empty, "." and "..".
+        token = os.path.basename(part)
+        if token in ("", ".", ".."):
+            return False
+        sanitized.append(token)
+
+    if not sanitized:
+        return False
+
+    try:
+        abs_base = base_path.resolve()
+        # joinpath receives only sanitized tokens – no user data in path construction.
+        candidate = abs_base.joinpath(*sanitized).resolve()
+        base_str = str(abs_base)
+        return str(candidate).startswith(base_str + os.sep) or str(candidate) == base_str
     except (ValueError, OSError):
         return False
 
@@ -166,7 +190,8 @@ def get_file_path(requested_path: str) -> Path | None:
 
     # Security check
     if not is_safe_path(clean_path, settings.DOCS_ROOT):
-        logger.warning(f"Unsafe path requested: {clean_path}")
+        safe_log = clean_path.replace("\r", "").replace("\n", "")
+        logger.warning("Unsafe path requested: %s", safe_log)
         return None
 
     file_path = settings.DOCS_ROOT / clean_path

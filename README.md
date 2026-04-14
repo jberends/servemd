@@ -11,6 +11,7 @@ Beautiful markdown documentation with native llms.txt support. Zero configuratio
 [![MCP](https://img.shields.io/badge/MCP-enabled-purple.svg)](docs/features/mcp.md)
 [![Tests](https://img.shields.io/badge/tests-208%20passing-brightgreen.svg)](tests/)
 [![License: Apache 2.0](https://img.shields.io/badge/License-Apache_2.0-yellow.svg)](LICENSE)
+[![CodeQL](https://github.com/jberends/servemd/actions/workflows/security.yml/badge.svg)](https://github.com/jberends/servemd/actions/workflows/security.yml)
 
 ---
 
