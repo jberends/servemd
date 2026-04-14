@@ -246,6 +246,8 @@ The index includes:
 
 ## Integration Examples
 
+> **Quick install:** Visit [/servemd](/servemd) on this site for one-click install buttons for Cursor and VS Code, plus a ready-to-copy config snippet for Claude Desktop.
+
 ### Claude Desktop
 
 Add to your Claude Desktop configuration (`claude_desktop_config.json`):
@@ -255,11 +257,30 @@ Add to your Claude Desktop configuration (`claude_desktop_config.json`):
   "mcpServers": {
     "my-docs": {
       "type": "http",
-      "url": "https://docs.example.com/mcp"
+      "url": "https://your-docs-site.com/mcp"
     }
   }
 }
 ```
+
+See [Settings > Developer > Edit Config](https://support.claude.com/en/articles/10949351-getting-started-with-local-mcp-servers-on-claude-desktop) in Claude Desktop to open the file directly.
+
+### Cursor
+
+Due to a known regression in Cursor v3.0.9+ where native HTTP MCP transport is broken, use [`mcp-remote`](https://github.com/geelen/mcp-remote) as a bridge:
+
+```json
+{
+  "mcpServers": {
+    "my-docs": {
+      "command": "npx",
+      "args": ["-y", "mcp-remote", "https://your-docs-site.com/mcp"]
+    }
+  }
+}
+```
+
+Or visit [/servemd](/servemd) for a one-click install button that generates this config automatically.
 
 ### n8n / Make.com
 

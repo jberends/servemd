@@ -3,8 +3,11 @@ HTML template generation for ServeMD Documentation Server.
 Contains the main HTML template with embedded CSS.
 """
 
+import base64
 import html
+import json
 import re
+import urllib.parse
 from typing import Any
 
 from .config import settings
@@ -37,6 +40,181 @@ def _iconify_img(prefix: str, icon: str, width: int = 18, height: int = 18, css_
         return LUCIDE_SEARCH_SVG
     url = f"{ICONIFY_CDN}/{prefix}/{icon}.svg?width={width}&height={height}"
     return f"<img src='{url}' alt='' class='{html.escape(css_class)}' width='{width}' height='{height}'>"
+
+
+def _cursor_install_link(name: str, mcp_url: str) -> str:
+    """
+    Generate a Cursor deep-link that installs this site's MCP server.
+
+    Uses mcp-remote (stdio bridge) because Cursor's native HTTP transport is broken
+    in v3.0.9+ (known regression, unfixed as of April 2026).
+    """
+    config = json.dumps({"type": "stdio", "command": "npx", "args": ["-y", "mcp-remote", mcp_url]})
+    b64 = base64.b64encode(config.encode()).decode()
+    return f"cursor://anysphere.cursor-deeplink/mcp/install?name={urllib.parse.quote(name)}&config={b64}"
+
+
+def _vscode_install_link(name: str, mcp_url: str) -> str:
+    """Generate a VS Code deep-link that installs this site's MCP server via native HTTP transport."""
+    config = json.dumps({"name": name, "type": "http", "url": mcp_url})
+    return f"vscode://mcp/install?{urllib.parse.quote(config)}"
+
+
+def render_servemd_about_content(base_url: str, version: str, mcp_enabled: bool) -> tuple[str, list[dict[str, Any]]]:
+    """
+    Generate the HTML content block and TOC items for the /servemd about page.
+
+    Returns (content_html, toc_items) where content_html is suitable for
+    passing as the content argument to create_html_template().
+    """
+    mcp_url = f"{base_url}/mcp"
+    mcp_url_safe = html.escape(mcp_url)
+    base_url_safe = html.escape(base_url)
+    version_safe = html.escape(version)
+
+    toc_items: list[dict[str, Any]] = [
+        {"id": "about-servemd", "title": "About ServeMD", "level": 2},
+        {"id": "this-deployment", "title": "This Deployment", "level": 2},
+    ]
+
+    if mcp_enabled:
+        toc_items += [
+            {"id": "connect-your-ai-client", "title": "Connect Your AI Client", "level": 2},
+            {"id": "claude", "title": "Claude (claude.ai)", "level": 3},
+            {"id": "chatgpt", "title": "ChatGPT", "level": 3},
+            {"id": "mistral-le-chat", "title": "Mistral Le Chat", "level": 3},
+            {"id": "cursor", "title": "Cursor", "level": 3},
+            {"id": "vs-code", "title": "VS Code", "level": 3},
+        ]
+    toc_items.append({"id": "links", "title": "Links", "level": 2})
+
+    # MCP status table rows
+    if mcp_enabled:
+        mcp_status_rows = (
+            f"<tr><td>MCP endpoint</td>"
+            f"<td><a href='{mcp_url_safe}'><code>{mcp_url_safe}</code></a></td></tr>\n"
+            f"    <tr><td>MCP status</td>"
+            f"<td><span class='mcp-status-badge mcp-status-enabled'>enabled</span></td></tr>"
+        )
+    else:
+        mcp_status_rows = (
+            "<tr><td>MCP status</td><td><span class='mcp-status-badge mcp-status-disabled'>disabled</span></td></tr>"
+        )
+
+    # MCP connect section (only shown when MCP is enabled)
+    mcp_section_html = ""
+    if mcp_enabled:
+        cursor_link = _cursor_install_link("docs", mcp_url)
+        vscode_link = _vscode_install_link("docs", mcp_url)
+        cursor_link_safe = html.escape(cursor_link, quote=True)
+        vscode_link_safe = html.escape(vscode_link, quote=True)
+
+        mcp_url_trailing = html.escape(f"{mcp_url}/", quote=True)
+
+        cursor_icon = _iconify_img("simple-icons", "cursor", 16, 16, "mcp-btn-icon")
+        vscode_icon = _iconify_img("simple-icons", "visualstudiocode", 16, 16, "mcp-btn-icon")
+        anthropic_icon = _iconify_img("simple-icons", "anthropic", 14, 14, "mcp-btn-icon")
+        openai_icon = _iconify_img("simple-icons", "openai", 14, 14, "mcp-btn-icon")
+        mistral_icon = _iconify_img("simple-icons", "mistralai", 14, 14, "mcp-btn-icon")
+
+        mcp_section_html = f"""
+<h2 id="connect-your-ai-client">Connect Your AI Client</h2>
+<p>Add this documentation site to your AI assistant as an MCP server. Once connected, your AI can search and retrieve pages on demand — using ~2 KB of context instead of loading everything at once.</p>
+<p><small>All methods require your ServeMD instance to be reachable over the public internet. For local development, use a tunnel such as <a href="https://ngrok.com" target="_blank" rel="noopener noreferrer">ngrok</a>.</small></p>
+
+<h3 id="claude">Claude (claude.ai)</h3>
+<p>Claude supports remote MCP servers natively via <strong>Connectors</strong> (Free, Pro, Max, Team &amp; Enterprise — beta).</p>
+<ol>
+  <li>Open <a href="https://claude.ai" target="_blank" rel="noopener noreferrer">claude.ai</a> → <strong>Customize</strong> → <strong>Connectors</strong> → click <strong>+</strong>.</li>
+  <li>Fill in the form — <strong>Name:</strong> <code>ServeMD Docs</code> and <strong>Remote MCP server URL:</strong></li>
+</ol>
+<div class="mcp-claude-config">
+  <div class="mcp-claude-config-header">
+    <span class="mcp-claude-config-label">{anthropic_icon} Remote MCP server URL</span>
+    <button type="button" class="mcp-copy-config-btn" data-config="{mcp_url_safe}">Copy</button>
+  </div>
+  <pre class="mcp-config-pre"><code>{mcp_url_safe}</code></pre>
+</div>
+<ol start="3">
+  <li>Click <strong>Add</strong>. No restart needed.</li>
+</ol>
+<p><small>Team &amp; Enterprise: an Owner must add the connector first via <strong>Organization settings → Connectors</strong>; members then connect individually.</small></p>
+
+<h3 id="chatgpt">ChatGPT</h3>
+<p>ChatGPT supports remote MCP servers via <strong>Developer Mode</strong> (Plus, Team, Enterprise &amp; Edu only).</p>
+<ol>
+  <li>Open <a href="https://chatgpt.com" target="_blank" rel="noopener noreferrer">chatgpt.com</a> → <strong>Settings</strong> → <strong>Connectors</strong> → <strong>Advanced</strong> → toggle <strong>Developer Mode</strong> on.</li>
+  <li>Click <strong>Create</strong>, enter a name and the following server URL (note the trailing slash):</li>
+</ol>
+<div class="mcp-claude-config">
+  <div class="mcp-claude-config-header">
+    <span class="mcp-claude-config-label">{openai_icon} MCP server URL</span>
+    <button type="button" class="mcp-copy-config-btn" data-config="{mcp_url_trailing}">Copy</button>
+  </div>
+  <pre class="mcp-config-pre"><code>{mcp_url_trailing}</code></pre>
+</div>
+<ol start="3">
+  <li>Check <strong>I trust this provider</strong> and click <strong>Create</strong>.</li>
+  <li>In each new chat: click <strong>+</strong> → <strong>More</strong> → <strong>Developer Mode</strong> → enable your connector.</li>
+</ol>
+<p><small>Developer Mode must be re-enabled per chat session. ChatGPT connects from OpenAI's cloud, not your local machine.</small></p>
+
+<h3 id="mistral-le-chat">Mistral Le Chat</h3>
+<p>Le Chat supports custom MCP connectors (requires Admin role).</p>
+<ol>
+  <li>Open <a href="https://chat.mistral.ai" target="_blank" rel="noopener noreferrer">chat.mistral.ai</a> → toggle side panel → <strong>Intelligence</strong> → <strong>Connectors</strong>.</li>
+  <li>Click <strong>+ Add Connector</strong> → select the <strong>Custom MCP Connector</strong> tab.</li>
+  <li>Fill in <strong>Connector name</strong> (no spaces), <strong>Connection server URL:</strong></li>
+</ol>
+<div class="mcp-claude-config">
+  <div class="mcp-claude-config-header">
+    <span class="mcp-claude-config-label">{mistral_icon} Connection server URL</span>
+    <button type="button" class="mcp-copy-config-btn" data-config="{mcp_url_safe}">Copy</button>
+  </div>
+  <pre class="mcp-config-pre"><code>{mcp_url_safe}</code></pre>
+</div>
+<ol start="4">
+  <li>Choose authentication method (none required for public servers) and click <strong>Connect</strong>.</li>
+  <li>Enable in conversations via the <strong>Tools</strong> icon (four squares) below the chat input.</li>
+</ol>
+
+<h3 id="cursor">Cursor</h3>
+<p>Click the button below. Cursor will ask you to confirm the installation.</p>
+<p><small>Uses <a href="https://github.com/geelen/mcp-remote" target="_blank" rel="noopener noreferrer"><code>mcp-remote</code></a> as a bridge because Cursor's native HTTP MCP transport is currently broken (v3.0.9+, known regression).</small></p>
+<div class="mcp-install-actions">
+  <a href="{cursor_link_safe}" class="mcp-install-btn mcp-cursor-btn">{cursor_icon}Add to Cursor</a>
+</div>
+
+<h3 id="vs-code">VS Code</h3>
+<p>Click the button below. VS Code will open a confirmation dialog.</p>
+<div class="mcp-install-actions">
+  <a href="{vscode_link_safe}" class="mcp-install-btn mcp-vscode-btn">{vscode_icon}Add to VS Code</a>
+</div>
+"""
+
+    content_html = f"""<h1>About ServeMD</h1>
+
+<h2 id="about-servemd">About ServeMD</h2>
+<p><strong>ServeMD</strong> is a lightweight, zero-configuration documentation server that renders Markdown files as beautiful, fast HTML. It ships with built-in AI integrations: <a href="{base_url_safe}/llms.txt"><code>llms.txt</code></a>, <a href="{base_url_safe}/llms-full.txt"><code>llms-full.txt</code></a>, and <a href="{base_url_safe}/mcp">MCP (Model Context Protocol)</a> support for interactive search by AI assistants.</p>
+
+<h2 id="this-deployment">This Deployment</h2>
+<table>
+  <tbody>
+    <tr><td>Version</td><td><code>servemd v{version_safe}</code></td></tr>
+    <tr><td>Base URL</td><td><code>{base_url_safe}</code></td></tr>
+    {mcp_status_rows}
+  </tbody>
+</table>
+{mcp_section_html}
+<h2 id="links">Links</h2>
+<ul>
+  <li><a href="https://github.com/jberends/servemd" target="_blank" rel="noopener noreferrer">GitHub — source code &amp; issues</a></li>
+  <li><a href="https://pypi.org/project/servemd/" target="_blank" rel="noopener noreferrer">PyPI — servemd package</a></li>
+  <li><a href="https://hub.docker.com/r/jberends/servemd" target="_blank" rel="noopener noreferrer">Docker Hub — container images</a></li>
+  <li><a href="https://github.com/jberends/servemd/blob/main/CHANGELOG.md" target="_blank" rel="noopener noreferrer">Changelog</a></li>
+</ul>"""
+
+    return content_html, toc_items
 
 
 def _render_page_actions_dropdown(
@@ -232,8 +410,8 @@ def create_html_template(
         if show_branding:
             sidebar_html += (
                 "<div class='servemd-branding'>"
-                '<a href="https://github.com/jberends/servemd" target="_blank" rel="noopener noreferrer">'
-                "Powered by servemd</a></div>"
+                '<a href="/about_servemd">Powered by servemd</a>'
+                "</div>"
             )
         sidebar_html += "</nav>"
 
@@ -326,6 +504,15 @@ def create_html_template(
             _mobile_search_params: dict[str, str] = dict(_search_item_params) if _search_item_params else {}
             _mobile_search_params["mode"] = "full"
             mobile_menu_html += _render_search_bar(_mobile_search_params, id_prefix="mobile")
+
+        # 4. Branding (mirrors sidebar footer)
+        if show_branding:
+            mobile_menu_html += (
+                "<div class='mobile-menu-divider'></div>"
+                "<div class='mobile-menu-branding'>"
+                '<a href="/about_servemd">Powered by servemd</a>'
+                "</div>"
+            )
 
         mobile_menu_html += "</div>"
         mobile_menu_script = """<script>
@@ -1539,6 +1726,120 @@ def create_html_template(
             text-decoration: underline;
         }}
 
+        /* MCP install buttons on /servemd about page */
+        .mcp-install-actions {{
+            display: flex;
+            gap: 0.75rem;
+            flex-wrap: wrap;
+            margin: 1rem 0;
+        }}
+
+        .mcp-install-btn {{
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem 1.1rem;
+            font-size: 0.875rem;
+            font-weight: 500;
+            border-radius: 0.5rem;
+            text-decoration: none;
+            transition: opacity 0.15s, box-shadow 0.15s;
+        }}
+
+        .mcp-install-btn:hover {{
+            opacity: 0.85;
+            text-decoration: none;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+        }}
+
+        .mcp-cursor-btn {{
+            background: #1a1a1a;
+            color: #fff;
+        }}
+
+        .mcp-vscode-btn {{
+            background: #007acc;
+            color: #fff;
+        }}
+
+        .mcp-btn-icon {{
+            display: inline-flex;
+            align-items: center;
+            flex-shrink: 0;
+        }}
+
+        .mcp-config-path {{
+            font-size: 0.8125rem;
+            color: var(--color-gray-600);
+            margin: 0.5rem 0 1rem;
+        }}
+
+        .mcp-claude-config {{
+            border: 1px solid var(--color-gray-200);
+            border-radius: 0.5rem;
+            overflow: hidden;
+            margin: 0.75rem 0 1.25rem;
+        }}
+
+        .mcp-claude-config-header {{
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0.4rem 0.75rem;
+            background: var(--color-gray-50);
+            border-bottom: 1px solid var(--color-gray-200);
+            font-size: 0.8125rem;
+        }}
+
+        .mcp-claude-config-label {{
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+            color: var(--color-gray-600);
+        }}
+
+        .mcp-copy-config-btn {{
+            padding: 0.2rem 0.65rem;
+            font-size: 0.8125rem;
+            border: 1px solid var(--color-gray-200);
+            border-radius: 0.375rem;
+            background: var(--color-bg-content);
+            color: var(--color-gray-700);
+            cursor: pointer;
+            transition: background 0.15s;
+        }}
+
+        .mcp-copy-config-btn:hover {{
+            background: var(--color-gray-100);
+        }}
+
+        .mcp-config-pre {{
+            margin: 0;
+            padding: 1rem;
+            background: var(--color-code-bg);
+            font-size: 0.875rem;
+            overflow-x: auto;
+            line-height: 1.5;
+        }}
+
+        .mcp-status-badge {{
+            display: inline-block;
+            padding: 0.125rem 0.5rem;
+            border-radius: 9999px;
+            font-size: 0.75rem;
+            font-weight: 500;
+        }}
+
+        .mcp-status-enabled {{
+            background: #d1fae5;
+            color: #065f46;
+        }}
+
+        .mcp-status-disabled {{
+            background: var(--color-gray-100);
+            color: var(--color-gray-600);
+        }}
+
         /* Content header: title + Copy page dropdown (Nuxt UI-style) */
         .content-header {{
             display: flex;
@@ -1697,6 +1998,20 @@ def create_html_template(
                 }});
             }});
         }}
+
+        document.querySelectorAll('.mcp-copy-config-btn').forEach(function(btn) {{
+            btn.addEventListener('click', function() {{
+                var raw = btn.getAttribute('data-config');
+                if (!raw) return;
+                var text;
+                try {{ text = JSON.parse(raw); }} catch(e) {{ text = raw; }}
+                navigator.clipboard.writeText(text).then(function() {{
+                    var orig = btn.textContent;
+                    btn.textContent = 'Copied! ✓';
+                    setTimeout(function() {{ btn.textContent = orig; }}, 2000);
+                }});
+            }});
+        }});
 
         document.querySelectorAll('.highlight').forEach(function(block) {{
             var pre = block.querySelector('pre');

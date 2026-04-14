@@ -35,7 +35,7 @@ from .helpers import (
 )
 from .llms_service import generate_llms_txt_content
 from .markdown_service import render_markdown_to_html
-from .templates import create_html_template
+from .templates import create_html_template, render_servemd_about_content
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -156,6 +156,39 @@ async def health_check():
         "debug": settings.DEBUG,
         "mcp_enabled": settings.MCP_ENABLED,
     }
+
+
+@app.get("/about_servemd")
+async def servemd_about(request: Request):
+    """
+    About page for this ServeMD deployment.
+
+    Shows version info, MCP endpoint URL, and one-click install buttons for
+    Cursor, VS Code, and Claude Desktop. Not indexed by the Whoosh search engine
+    because it is not under DOCS_ROOT.
+    """
+    base_url = settings.BASE_URL if settings.BASE_URL else str(request.base_url).rstrip("/")
+    navigation = parse_sidebar_navigation()
+    topbar_sections = parse_topbar_links()
+
+    content_html, toc_items = render_servemd_about_content(
+        base_url=base_url,
+        version=__version__,
+        mcp_enabled=settings.MCP_ENABLED,
+    )
+
+    full_html = create_html_template(
+        content_html,
+        title="About ServeMD",
+        current_path="/about_servemd",
+        navigation=navigation,
+        topbar_sections=topbar_sections,
+        toc_items=toc_items,
+        show_search=settings.MCP_ENABLED,
+        show_branding=settings.SERVEMD_BRANDING_ENABLED,
+        custom_css_url="/custom.css" if get_custom_css_path() else None,
+    )
+    return HTMLResponse(content=full_html)
 
 
 @app.post("/mcp")

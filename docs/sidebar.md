@@ -20,6 +20,7 @@
   * [Customization](features/customization.html)
   * [LLMs.txt Support](features/llms-txt.html)
   * [MCP Integration](features/mcp.html)
+  * [MCP Client Setup](features/mcp-setup.html)
 * [Deployment](deployment/docker.html)
   * [Docker Deployment](deployment/docker.html)
 * [API Reference](api/endpoints.html)
