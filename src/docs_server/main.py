@@ -4,9 +4,12 @@ A lightweight documentation server for serving markdown files as HTML.
 Inspired by Nuxt UI design system and documentation patterns.
 """
 
+import html
 import logging
 import re
 from contextlib import asynccontextmanager
+from pathlib import Path
+from urllib.parse import quote
 
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, PlainTextResponse, RedirectResponse
@@ -489,6 +492,67 @@ async def serve_custom_css():
     )
 
 
+def _serve_html_in_iframe(path: str, file_path: Path) -> HTMLResponse:
+    """Wrap a raw HTML file from DOCS_ROOT in the doc template via an iframe."""
+    navigation = parse_sidebar_navigation()
+    topbar_sections = parse_topbar_links()
+
+    title = f"{file_path.stem.replace('_', ' ').title()} - Documentation"
+    current_path = f"/{path}" if path and not path.startswith("/") else path
+
+    if not re.fullmatch(r"[A-Za-z0-9._\-/]+", path):
+        raise HTTPException(status_code=400, detail="Invalid path")
+
+    safe_src = quote(path, safe="/")
+    safe_title = html.escape(file_path.stem, quote=True)
+    iframe_content = f'<iframe src="/raw/{safe_src}" class="html-embed-frame" title="{safe_title}"></iframe>'
+
+    full_html = create_html_template(
+        iframe_content,
+        title,
+        current_path,
+        navigation,
+        topbar_sections,
+        toc_items=[],
+        show_search=settings.MCP_ENABLED,
+        show_branding=settings.SERVEMD_BRANDING_ENABLED,
+        page_actions=None,
+        custom_css_url="/custom.css" if get_custom_css_path() else None,
+    )
+
+    return HTMLResponse(content=full_html)
+
+
+@app.get("/raw/{path:path}")
+async def serve_raw_file(path: str):
+    """
+    Serve a file from DOCS_ROOT as-is, without template wrapping.
+    Used by the iframe embed for HTML files to avoid recursive template rendering.
+    """
+    file_path = get_file_path(path)
+    if not file_path:
+        raise HTTPException(status_code=404, detail="File not found")
+
+    suffix = file_path.suffix.lower()
+    media_types = {
+        ".html": "text/html",
+        ".htm": "text/html",
+        ".css": "text/css",
+        ".js": "application/javascript",
+        ".json": "application/json",
+        ".png": "image/png",
+        ".jpg": "image/jpeg",
+        ".jpeg": "image/jpeg",
+        ".gif": "image/gif",
+        ".svg": "image/svg+xml",
+    }
+    media_type = media_types.get(suffix, "application/octet-stream")
+
+    safe_log_path = path.replace("\r", "").replace("\n", "")
+    logger.debug(f"Serving raw file: {safe_log_path} ({media_type})")
+    return FileResponse(path=str(file_path), media_type=media_type)
+
+
 @app.get("/{path:path}")
 async def serve_content(path: str, request: Request):
     """
@@ -506,6 +570,10 @@ async def serve_content(path: str, request: Request):
         file_path = get_file_path(md_path)
 
         if not file_path:
+            # Fallback: check if a raw .html file exists in DOCS_ROOT
+            html_file_path = get_file_path(path)
+            if html_file_path:
+                return _serve_html_in_iframe(path, html_file_path)
             raise HTTPException(status_code=404, detail="File not found")
 
         # Check cache first

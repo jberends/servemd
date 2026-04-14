@@ -285,7 +285,9 @@ def create_html_template(
                 elif _stype == "group_with_children":
                     _active = " active" if current_path == _section["link"] else ""
                     mobile_menu_html += "<div class='nav-group'>"
-                    mobile_menu_html += f"<a href='{_section['link']}' class='nav-group-header{_active}'>{_section['title']}</a>"
+                    mobile_menu_html += (
+                        f"<a href='{_section['link']}' class='nav-group-header{_active}'>{_section['title']}</a>"
+                    )
                     mobile_menu_html += "<ul class='nav-group-links'>"
                     for _child in _section.get("children", []):
                         _cactive = " active" if current_path == _child["link"] else ""
@@ -870,6 +872,13 @@ def create_html_template(
             padding: 1.25rem;
             box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
             border: 1px solid var(--color-gray-200);
+        }}
+
+        .html-embed-frame {{
+            width: 100%;
+            border: none;
+            min-height: 80vh;
+            display: block;
         }}
 
         .toc-sidebar {{

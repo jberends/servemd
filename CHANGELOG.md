@@ -9,6 +9,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- :page_facing_up: **HTML file embedding** - Raw `.html` files in `DOCS_ROOT` are now served inside the standard doc layout (sidebar, topbar) via a same-origin iframe:
+  - `GET /foo.html` falls back to `foo.html` when no `foo.md` exists — markdown always wins when both are present
+  - New `GET /raw/{path}` endpoint serves any file from `DOCS_ROOT` as-is (no template wrapping), used as the iframe `src` to avoid recursive rendering
+  - Iframe fills the content pane (`min-height: 80vh`); scripts and styles in the HTML file run in full isolation
+  - Path traversal protection inherited from existing `get_file_path()` validation; iframe attributes HTML-escaped and URL-encoded
 - :bookmark_tabs: **Favicon** - Inline SVG favicon using the Tabler `book` icon in accent orange (`#f26a28`); embedded as a data URI so it works offline with no external requests.
 
 ### Fixed
