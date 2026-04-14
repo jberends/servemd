@@ -81,6 +81,8 @@ def render_servemd_about_content(base_url: str, version: str, mcp_enabled: bool)
         toc_items += [
             {"id": "connect-your-ai-client", "title": "Connect Your AI Client", "level": 2},
             {"id": "claude", "title": "Claude (claude.ai)", "level": 3},
+            {"id": "chatgpt", "title": "ChatGPT", "level": 3},
+            {"id": "mistral-le-chat", "title": "Mistral Le Chat", "level": 3},
             {"id": "cursor", "title": "Cursor", "level": 3},
             {"id": "vs-code", "title": "VS Code", "level": 3},
         ]
@@ -107,37 +109,74 @@ def render_servemd_about_content(base_url: str, version: str, mcp_enabled: bool)
         cursor_link_safe = html.escape(cursor_link, quote=True)
         vscode_link_safe = html.escape(vscode_link, quote=True)
 
+        mcp_url_trailing = html.escape(f"{mcp_url}/", quote=True)
+
         cursor_icon = _iconify_img("simple-icons", "cursor", 16, 16, "mcp-btn-icon")
         vscode_icon = _iconify_img("simple-icons", "visualstudiocode", 16, 16, "mcp-btn-icon")
         anthropic_icon = _iconify_img("simple-icons", "anthropic", 14, 14, "mcp-btn-icon")
+        openai_icon = _iconify_img("simple-icons", "openai", 14, 14, "mcp-btn-icon")
+        mistral_icon = _iconify_img("simple-icons", "mistralai", 14, 14, "mcp-btn-icon")
 
         mcp_section_html = f"""
 <h2 id="connect-your-ai-client">Connect Your AI Client</h2>
-<p>Add this documentation site to your AI coding assistant as an MCP server. Once connected, your AI can search and retrieve pages on demand — using ~2 KB of context instead of loading everything at once.</p>
+<p>Add this documentation site to your AI assistant as an MCP server. Once connected, your AI can search and retrieve pages on demand — using ~2 KB of context instead of loading everything at once.</p>
+<p><small>All methods require your ServeMD instance to be reachable over the public internet. For local development, use a tunnel such as <a href="https://ngrok.com" target="_blank" rel="noopener noreferrer">ngrok</a>.</small></p>
 
 <h3 id="claude">Claude (claude.ai)</h3>
-<p>Claude supports remote MCP servers natively via <strong>Connectors</strong>. Follow these steps:</p>
+<p>Claude supports remote MCP servers natively via <strong>Connectors</strong> (Free, Pro, Max, Team &amp; Enterprise — beta).</p>
 <ol>
-  <li>Open <a href="https://claude.ai" target="_blank" rel="noopener noreferrer">claude.ai</a> and click <strong>Customize</strong> in the left sidebar.</li>
-  <li>Select <strong>Connectors</strong>, then click the <strong>+</strong> button.</li>
-  <li>Fill in the form:
-    <ul>
-      <li><strong>Name:</strong> <code>ServeMD Docs</code> (or any name you like)</li>
-      <li><strong>Remote MCP server URL:</strong></li>
-    </ul>
-  </li>
+  <li>Open <a href="https://claude.ai" target="_blank" rel="noopener noreferrer">claude.ai</a> → <strong>Customize</strong> → <strong>Connectors</strong> → click <strong>+</strong>.</li>
+  <li>Fill in the form — <strong>Name:</strong> <code>ServeMD Docs</code> and <strong>Remote MCP server URL:</strong></li>
 </ol>
 <div class="mcp-claude-config">
   <div class="mcp-claude-config-header">
-    <span class="mcp-claude-config-label">{anthropic_icon} MCP server URL</span>
+    <span class="mcp-claude-config-label">{anthropic_icon} Remote MCP server URL</span>
+    <button type="button" class="mcp-copy-config-btn" data-config="{mcp_url_safe}">Copy</button>
+  </div>
+  <pre class="mcp-config-pre"><code>{mcp_url_safe}</code></pre>
+</div>
+<ol start="3">
+  <li>Click <strong>Add</strong>. No restart needed.</li>
+</ol>
+<p><small>Team &amp; Enterprise: an Owner must add the connector first via <strong>Organization settings → Connectors</strong>; members then connect individually.</small></p>
+
+<h3 id="chatgpt">ChatGPT</h3>
+<p>ChatGPT supports remote MCP servers via <strong>Developer Mode</strong> (Plus, Team, Enterprise &amp; Edu only).</p>
+<ol>
+  <li>Open <a href="https://chatgpt.com" target="_blank" rel="noopener noreferrer">chatgpt.com</a> → <strong>Settings</strong> → <strong>Connectors</strong> → <strong>Advanced</strong> → toggle <strong>Developer Mode</strong> on.</li>
+  <li>Click <strong>Create</strong>, enter a name and the following server URL (note the trailing slash):</li>
+</ol>
+<div class="mcp-claude-config">
+  <div class="mcp-claude-config-header">
+    <span class="mcp-claude-config-label">{openai_icon} MCP server URL</span>
+    <button type="button" class="mcp-copy-config-btn" data-config="{mcp_url_trailing}">Copy</button>
+  </div>
+  <pre class="mcp-config-pre"><code>{mcp_url_trailing}</code></pre>
+</div>
+<ol start="3">
+  <li>Check <strong>I trust this provider</strong> and click <strong>Create</strong>.</li>
+  <li>In each new chat: click <strong>+</strong> → <strong>More</strong> → <strong>Developer Mode</strong> → enable your connector.</li>
+</ol>
+<p><small>Developer Mode must be re-enabled per chat session. ChatGPT connects from OpenAI's cloud, not your local machine.</small></p>
+
+<h3 id="mistral-le-chat">Mistral Le Chat</h3>
+<p>Le Chat supports custom MCP connectors (requires Admin role).</p>
+<ol>
+  <li>Open <a href="https://chat.mistral.ai" target="_blank" rel="noopener noreferrer">chat.mistral.ai</a> → toggle side panel → <strong>Intelligence</strong> → <strong>Connectors</strong>.</li>
+  <li>Click <strong>+ Add Connector</strong> → select the <strong>Custom MCP Connector</strong> tab.</li>
+  <li>Fill in <strong>Connector name</strong> (no spaces), <strong>Connection server URL:</strong></li>
+</ol>
+<div class="mcp-claude-config">
+  <div class="mcp-claude-config-header">
+    <span class="mcp-claude-config-label">{mistral_icon} Connection server URL</span>
     <button type="button" class="mcp-copy-config-btn" data-config="{mcp_url_safe}">Copy</button>
   </div>
   <pre class="mcp-config-pre"><code>{mcp_url_safe}</code></pre>
 </div>
 <ol start="4">
-  <li>Click <strong>Add</strong>. Claude will connect immediately — no restart needed.</li>
+  <li>Choose authentication method (none required for public servers) and click <strong>Connect</strong>.</li>
+  <li>Enable in conversations via the <strong>Tools</strong> icon (four squares) below the chat input.</li>
 </ol>
-<p><small>The Connectors feature is available on Free, Pro, Max, Team, and Enterprise plans (currently in beta). Your MCP server must be reachable over the public internet from Anthropic's infrastructure. For local development servers, use a tunnel such as <a href="https://ngrok.com" target="_blank" rel="noopener noreferrer">ngrok</a>.</small></p>
 
 <h3 id="cursor">Cursor</h3>
 <p>Click the button below. Cursor will ask you to confirm the installation.</p>
