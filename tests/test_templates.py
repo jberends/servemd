@@ -329,7 +329,7 @@ def test_create_html_template_branding_when_enabled():
     result = create_html_template("<p>Content</p>", navigation=navigation, show_branding=True)
 
     assert "Powered by servemd" in result
-    assert "github.com/jberends/servemd" in result
+    assert 'href="/about_servemd"' in result
     assert "servemd-branding" in result
 
 
@@ -344,14 +344,13 @@ def test_create_html_template_no_branding_when_disabled():
 
 
 def test_create_html_template_branding_link_attributes():
-    """Test that branding link has correct external link attributes."""
+    """Test that branding link points to the internal about page."""
     from docs_server.templates import create_html_template
 
     navigation = [{"type": "link", "title": "Home", "link": "index.html"}]
     result = create_html_template("<p>Content</p>", navigation=navigation, show_branding=True)
 
-    assert 'target="_blank"' in result
-    assert 'rel="noopener noreferrer"' in result
+    assert 'href="/about_servemd"' in result
 
 
 def test_create_html_template_search_custom_svg(tmp_path, monkeypatch):
@@ -707,7 +706,7 @@ def test_render_servemd_about_mcp_disabled():
 
 
 def test_branding_footer_links_to_servemd_page():
-    """The 'Powered by servemd' branding footer should link to /servemd."""
+    """The 'Powered by servemd' branding footer should link to /about_servemd."""
     from docs_server.templates import create_html_template
 
     result = create_html_template(
@@ -716,6 +715,5 @@ def test_branding_footer_links_to_servemd_page():
         show_branding=True,
     )
 
-    assert 'href="/servemd"' in result
+    assert 'href="/about_servemd"' in result
     assert "Powered by servemd" in result
-    assert "Source on GitHub" in result

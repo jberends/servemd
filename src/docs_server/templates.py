@@ -151,7 +151,7 @@ def render_servemd_about_content(base_url: str, version: str, mcp_enabled: bool)
     content_html = f"""<h1>About ServeMD</h1>
 
 <h2 id="about-servemd">About ServeMD</h2>
-<p><strong>ServeMD</strong> is a lightweight, zero-configuration documentation server that renders Markdown files as beautiful, fast HTML. It ships with built-in AI integrations: <code>llms.txt</code>, <code>llms-full.txt</code>, and MCP (Model Context Protocol) support for interactive search by AI assistants.</p>
+<p><strong>ServeMD</strong> is a lightweight, zero-configuration documentation server that renders Markdown files as beautiful, fast HTML. It ships with built-in AI integrations: <a href="{base_url_safe}/llms.txt"><code>llms.txt</code></a>, <a href="{base_url_safe}/llms-full.txt"><code>llms-full.txt</code></a>, and <a href="{base_url_safe}/mcp">MCP (Model Context Protocol)</a> support for interactive search by AI assistants.</p>
 
 <h2 id="this-deployment">This Deployment</h2>
 <table>
@@ -366,9 +366,7 @@ def create_html_template(
         if show_branding:
             sidebar_html += (
                 "<div class='servemd-branding'>"
-                '<a href="/servemd">Powered by servemd</a>'
-                '<a href="https://github.com/jberends/servemd" target="_blank" rel="noopener noreferrer"'
-                ' class="servemd-github-link">Source on GitHub ↗</a>'
+                '<a href="/about_servemd">Powered by servemd</a>'
                 "</div>"
             )
         sidebar_html += "</nav>"
@@ -462,6 +460,15 @@ def create_html_template(
             _mobile_search_params: dict[str, str] = dict(_search_item_params) if _search_item_params else {}
             _mobile_search_params["mode"] = "full"
             mobile_menu_html += _render_search_bar(_mobile_search_params, id_prefix="mobile")
+
+        # 4. Branding (mirrors sidebar footer)
+        if show_branding:
+            mobile_menu_html += (
+                "<div class='mobile-menu-divider'></div>"
+                "<div class='mobile-menu-branding'>"
+                '<a href="/about_servemd">Powered by servemd</a>'
+                "</div>"
+            )
 
         mobile_menu_html += "</div>"
         mobile_menu_script = """<script>
@@ -1673,12 +1680,6 @@ def create_html_template(
         .servemd-branding a:hover {{
             color: var(--color-gray-700);
             text-decoration: underline;
-        }}
-
-        .servemd-branding .servemd-github-link {{
-            display: block;
-            font-size: 0.75rem;
-            margin-top: 0.25rem;
         }}
 
         /* MCP install buttons on /servemd about page */

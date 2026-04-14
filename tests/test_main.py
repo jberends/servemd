@@ -56,13 +56,13 @@ def test_main_parses_clear_cache_with_other_args():
 
 
 # ---------------------------------------------------------------------------
-# /servemd route
+# /about_servemd route
 # ---------------------------------------------------------------------------
 
 
 @pytest.fixture
 def temp_docs_for_servemd(tmp_path):
-    """Minimal docs root for /servemd route tests."""
+    """Minimal docs root for /about_servemd route tests."""
     docs_dir = tmp_path / "docs"
     docs_dir.mkdir()
     (docs_dir / "index.md").write_text("# Home\n\nWelcome.")
@@ -73,7 +73,7 @@ def temp_docs_for_servemd(tmp_path):
 
 @pytest.mark.asyncio
 async def test_servemd_route_returns_200(temp_docs_for_servemd):
-    """GET /servemd returns a 200 HTML response."""
+    """GET /about_servemd returns a 200 HTML response."""
     from docs_server.main import app
 
     with patch("docs_server.main.settings") as mock_settings:
@@ -85,7 +85,7 @@ async def test_servemd_route_returns_200(temp_docs_for_servemd):
         mock_settings.CUSTOM_CSS = "custom.css"
 
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
-            response = await client.get("/servemd")
+            response = await client.get("/about_servemd")
 
     assert response.status_code == 200
     assert "text/html" in response.headers.get("content-type", "")
@@ -95,7 +95,7 @@ async def test_servemd_route_returns_200(temp_docs_for_servemd):
 
 @pytest.mark.asyncio
 async def test_servemd_route_shows_mcp_disabled(temp_docs_for_servemd):
-    """GET /servemd with MCP disabled shows disabled status, no install buttons."""
+    """GET /about_servemd with MCP disabled shows disabled status, no install buttons."""
     from docs_server.main import app
 
     with patch("docs_server.main.settings") as mock_settings:
@@ -107,7 +107,7 @@ async def test_servemd_route_shows_mcp_disabled(temp_docs_for_servemd):
         mock_settings.CUSTOM_CSS = "custom.css"
 
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
-            response = await client.get("/servemd")
+            response = await client.get("/about_servemd")
 
     assert response.status_code == 200
     assert "mcp-status-disabled" in response.text

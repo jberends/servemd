@@ -9,11 +9,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- :page_facing_up: **HTML file embedding** - Raw `.html` files in `DOCS_ROOT` are now served inside the standard doc layout (sidebar, topbar) via a same-origin iframe:
-  - `GET /foo.html` falls back to `foo.html` when no `foo.md` exists — markdown always wins when both are present
-  - New `GET /raw/{path}` endpoint serves any file from `DOCS_ROOT` as-is (no template wrapping), used as the iframe `src` to avoid recursive rendering
-  - Iframe fills the content pane (`min-height: 80vh`); scripts and styles in the HTML file run in full isolation
-  - Path traversal protection inherited from existing `get_file_path()` validation; iframe attributes HTML-escaped and URL-encoded
 - :electric_plug: **MCP Installation UX** — New `/servemd` about page with one-click install buttons and version info:
   - `GET /servemd` renders in the full three-column layout (sidebar + content + TOC); excluded from the Whoosh search index automatically (not under `DOCS_ROOT`).
   - **Add to Cursor** deep link via `cursor://` scheme: uses `mcp-remote` as a stdio bridge (required workaround for broken HTTP transport in Cursor v3.0.9+).
@@ -23,6 +18,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - "Powered by servemd" sidebar footer now links to `/servemd`; GitHub link demoted to "Source on GitHub ↗" sub-line.
   - New `docs/features/mcp-setup.md` step-by-step guide for Claude Desktop, Cursor, VS Code, and manual JSON fallback.
   - Updated `docs/features/mcp.md` integration examples with Cursor mcp-remote config and link to `/servemd`.
+- :page_facing_up: **HTML file embedding** - Raw `.html` files in `DOCS_ROOT` are now served inside the standard doc layout (sidebar, topbar) via a same-origin iframe:
+  - `GET /foo.html` falls back to `foo.html` when no `foo.md` exists — markdown always wins when both are present
+  - New `GET /raw/{path}` endpoint serves any file from `DOCS_ROOT` as-is (no template wrapping), used as the iframe `src` to avoid recursive rendering
+  - Iframe fills the content pane (`min-height: 80vh`); scripts and styles in the HTML file run in full isolation
+  - Path traversal protection inherited from existing `get_file_path()` validation; iframe attributes HTML-escaped and URL-encoded
 - :bookmark_tabs: **Favicon** - Inline SVG favicon using the Tabler `book` icon in accent orange (`#f26a28`); embedded as a data URI so it works offline with no external requests.
 
 ### Fixed

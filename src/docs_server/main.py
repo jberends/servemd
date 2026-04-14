@@ -158,7 +158,7 @@ async def health_check():
     }
 
 
-@app.get("/servemd")
+@app.get("/about_servemd")
 async def servemd_about(request: Request):
     """
     About page for this ServeMD deployment.
@@ -180,7 +180,7 @@ async def servemd_about(request: Request):
     full_html = create_html_template(
         content_html,
         title="About ServeMD",
-        current_path="/servemd",
+        current_path="/about_servemd",
         navigation=navigation,
         topbar_sections=topbar_sections,
         toc_items=toc_items,
