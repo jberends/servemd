@@ -4,10 +4,12 @@ A lightweight documentation server for serving markdown files as HTML.
 Inspired by Nuxt UI design system and documentation patterns.
 """
 
+import html
 import logging
 import re
 from contextlib import asynccontextmanager
 from pathlib import Path
+from urllib.parse import quote
 
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, PlainTextResponse, RedirectResponse
@@ -498,7 +500,9 @@ def _serve_html_in_iframe(path: str, file_path: Path) -> HTMLResponse:
     title = f"{file_path.stem.replace('_', ' ').title()} - Documentation"
     current_path = f"/{path}" if path and not path.startswith("/") else path
 
-    iframe_content = f'<iframe src="/raw/{path}" class="html-embed-frame" title="{file_path.stem}"></iframe>'
+    safe_src = quote(path, safe="/")
+    safe_title = html.escape(file_path.stem, quote=True)
+    iframe_content = f'<iframe src="/raw/{safe_src}" class="html-embed-frame" title="{safe_title}"></iframe>'
 
     full_html = create_html_template(
         iframe_content,
