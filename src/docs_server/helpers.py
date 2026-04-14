@@ -6,7 +6,7 @@ Contains pure utility functions and navigation structure parsers.
 import logging
 import os
 import re
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 from typing import Any
 from urllib.parse import quote, unquote
 
@@ -134,18 +134,34 @@ def is_safe_path(path: str, base_path: Path) -> bool:
     """
     Validate that the requested path is within the allowed directory boundaries.
     Prevents directory traversal attacks.
+
+    Strategy: split the path into components and apply os.path.basename to each
+    one (a CodeQL-recognised sanitiser).  Only the resulting clean tokens are
+    ever passed to pathlib, so no raw user data touches the Path constructor.
     """
     try:
-        # Normalize the path string first to expose any traversal sequences
-        # (e.g. "a/../../etc" → "../etc") and reject them before constructing
-        # a Path object, giving the static analyser a provable early-exit.
-        norm = os.path.normpath(path)
-        if os.path.isabs(norm) or norm.startswith(".."):
+        parts = PurePosixPath(path).parts
+    except Exception:
+        return False
+
+    sanitized: list[str] = []
+    for part in parts:
+        # os.path.basename is a recognised sanitiser – strips any leading directory
+        # prefix from a component.  We then explicitly reject empty, "." and "..".
+        token = os.path.basename(part)
+        if token in ("", ".", ".."):
             return False
+        sanitized.append(token)
+
+    if not sanitized:
+        return False
+
+    try:
         abs_base = base_path.resolve()
-        abs_path = (abs_base / norm).resolve()  # lgtm[py/path-injection] - norm is validated above
-        # Defence-in-depth: also confirm resolved path stays inside base_path.
-        return os.path.commonpath([abs_base, abs_path]) == str(abs_base)
+        # joinpath receives only sanitized tokens – no user data in path construction.
+        candidate = abs_base.joinpath(*sanitized).resolve()
+        base_str = str(abs_base)
+        return str(candidate).startswith(base_str + os.sep) or str(candidate) == base_str
     except (ValueError, OSError):
         return False
 
