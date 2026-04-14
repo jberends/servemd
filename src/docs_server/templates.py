@@ -80,9 +80,9 @@ def render_servemd_about_content(base_url: str, version: str, mcp_enabled: bool)
     if mcp_enabled:
         toc_items += [
             {"id": "connect-your-ai-client", "title": "Connect Your AI Client", "level": 2},
+            {"id": "claude", "title": "Claude (claude.ai)", "level": 3},
             {"id": "cursor", "title": "Cursor", "level": 3},
             {"id": "vs-code", "title": "VS Code", "level": 3},
-            {"id": "claude-desktop", "title": "Claude Desktop", "level": 3},
         ]
     toc_items.append({"id": "links", "title": "Links", "level": 2})
 
@@ -107,11 +107,6 @@ def render_servemd_about_content(base_url: str, version: str, mcp_enabled: bool)
         cursor_link_safe = html.escape(cursor_link, quote=True)
         vscode_link_safe = html.escape(vscode_link, quote=True)
 
-        claude_config = json.dumps({"mcpServers": {"docs": {"type": "http", "url": mcp_url}}}, indent=2)
-        claude_config_html = html.escape(claude_config)
-        # Serialize again so it becomes a safe JS string literal inside data-config="..."
-        claude_config_attr = html.escape(json.dumps(claude_config), quote=True)
-
         cursor_icon = _iconify_img("simple-icons", "cursor", 16, 16, "mcp-btn-icon")
         vscode_icon = _iconify_img("simple-icons", "visualstudiocode", 16, 16, "mcp-btn-icon")
         anthropic_icon = _iconify_img("simple-icons", "anthropic", 14, 14, "mcp-btn-icon")
@@ -119,6 +114,30 @@ def render_servemd_about_content(base_url: str, version: str, mcp_enabled: bool)
         mcp_section_html = f"""
 <h2 id="connect-your-ai-client">Connect Your AI Client</h2>
 <p>Add this documentation site to your AI coding assistant as an MCP server. Once connected, your AI can search and retrieve pages on demand — using ~2 KB of context instead of loading everything at once.</p>
+
+<h3 id="claude">Claude (claude.ai)</h3>
+<p>Claude supports remote MCP servers natively via <strong>Connectors</strong>. Follow these steps:</p>
+<ol>
+  <li>Open <a href="https://claude.ai" target="_blank" rel="noopener noreferrer">claude.ai</a> and click <strong>Customize</strong> in the left sidebar.</li>
+  <li>Select <strong>Connectors</strong>, then click the <strong>+</strong> button.</li>
+  <li>Fill in the form:
+    <ul>
+      <li><strong>Name:</strong> <code>ServeMD Docs</code> (or any name you like)</li>
+      <li><strong>Remote MCP server URL:</strong></li>
+    </ul>
+  </li>
+</ol>
+<div class="mcp-claude-config">
+  <div class="mcp-claude-config-header">
+    <span class="mcp-claude-config-label">{anthropic_icon} MCP server URL</span>
+    <button type="button" class="mcp-copy-config-btn" data-config="{mcp_url_safe}">Copy</button>
+  </div>
+  <pre class="mcp-config-pre"><code>{mcp_url_safe}</code></pre>
+</div>
+<ol start="4">
+  <li>Click <strong>Add</strong>. Claude will connect immediately — no restart needed.</li>
+</ol>
+<p><small>The Connectors feature is available on Free, Pro, Max, Team, and Enterprise plans (currently in beta). Your MCP server must be reachable over the public internet from Anthropic's infrastructure. For local development servers, use a tunnel such as <a href="https://ngrok.com" target="_blank" rel="noopener noreferrer">ngrok</a>.</small></p>
 
 <h3 id="cursor">Cursor</h3>
 <p>Click the button below. Cursor will ask you to confirm the installation.</p>
@@ -131,20 +150,6 @@ def render_servemd_about_content(base_url: str, version: str, mcp_enabled: bool)
 <p>Click the button below. VS Code will open a confirmation dialog.</p>
 <div class="mcp-install-actions">
   <a href="{vscode_link_safe}" class="mcp-install-btn mcp-vscode-btn">{vscode_icon}Add to VS Code</a>
-</div>
-
-<h3 id="claude-desktop">Claude Desktop</h3>
-<p>Claude Desktop does not yet support one-click remote MCP installation. Copy the snippet below, paste it into your <code>claude_desktop_config.json</code>, and restart Claude Desktop.</p>
-<p class="mcp-config-path">
-  <strong>macOS:</strong> <code>~/Library/Application Support/Claude/claude_desktop_config.json</code><br>
-  <strong>Windows:</strong> <code>%APPDATA%\\Claude\\claude_desktop_config.json</code>
-</p>
-<div class="mcp-claude-config">
-  <div class="mcp-claude-config-header">
-    <span class="mcp-claude-config-label">{anthropic_icon} claude_desktop_config.json</span>
-    <button type="button" class="mcp-copy-config-btn" data-config="{claude_config_attr}">Copy</button>
-  </div>
-  <pre class="mcp-config-pre"><code>{claude_config_html}</code></pre>
 </div>
 """
 
