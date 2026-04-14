@@ -618,7 +618,8 @@ async def serve_content(path: str, request: Request, highlight: str = ""):
         if not highlight:
             cached_html = await get_cached_html(file_path)
             if cached_html:
-                logger.debug(f"Serving cached HTML: {path}")
+                safe_log_path = path.replace("\r", "").replace("\n", "")
+                logger.debug(f"Serving cached HTML: {safe_log_path}")
                 return HTMLResponse(content=cached_html)
 
         # Read and render markdown
