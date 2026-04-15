@@ -40,6 +40,42 @@ def test_main_does_not_call_clear_cache_without_flag():
         mock_uvicorn.assert_called_once()
 
 
+def test_main_passes_proxy_headers_to_uvicorn():
+    """uvicorn.run() must receive proxy_headers=True and forwarded_allow_ips from settings."""
+    with (
+        patch("docs_server.main.settings") as mock_settings,
+        patch("uvicorn.run") as mock_uvicorn,
+    ):
+        mock_settings.PORT = 8080
+        mock_settings.DEBUG = False
+        mock_settings.FORWARDED_ALLOW_IPS = "127.0.0.1"
+        with patch.object(sys, "argv", ["docs_server"]):
+            from docs_server.main import main
+
+            main()
+
+        call_kwargs = mock_uvicorn.call_args.kwargs
+        assert call_kwargs.get("proxy_headers") is True
+        assert call_kwargs.get("forwarded_allow_ips") == "127.0.0.1"
+
+
+def test_main_forwards_custom_allow_ips():
+    """forwarded_allow_ips is taken from settings.FORWARDED_ALLOW_IPS."""
+    with (
+        patch("docs_server.main.settings") as mock_settings,
+        patch("uvicorn.run") as mock_uvicorn,
+    ):
+        mock_settings.PORT = 8080
+        mock_settings.DEBUG = False
+        mock_settings.FORWARDED_ALLOW_IPS = "*"
+        with patch.object(sys, "argv", ["docs_server"]):
+            from docs_server.main import main
+
+            main()
+
+        assert mock_uvicorn.call_args.kwargs["forwarded_allow_ips"] == "*"
+
+
 def test_main_parses_clear_cache_with_other_args():
     """Test that --clear-cache is parsed correctly alongside other args (parse_known_args)"""
     with (

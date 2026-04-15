@@ -28,6 +28,12 @@ class Settings:
         self.DEBUG = os.getenv("DEBUG", "false").lower() == "true"
         self.PORT = int(os.getenv("PORT", "8080"))
 
+        # Reverse proxy trusted IPs for X-Forwarded-For header rewriting.
+        # Set to "*" when running behind a Docker Compose proxy (Caddy, Traefik, nginx).
+        # Use a comma-separated CIDR list to trust only specific upstream proxies.
+        # Corresponds directly to uvicorn's --forwarded-allow-ips option.
+        self.FORWARDED_ALLOW_IPS = os.getenv("FORWARDED_ALLOW_IPS", "127.0.0.1")
+
         # MCP Configuration
         self.MCP_ENABLED = os.getenv("MCP_ENABLED", "true").lower() == "true"
         self.MCP_RATE_LIMIT_REQUESTS = int(os.getenv("MCP_RATE_LIMIT_REQUESTS", "120"))

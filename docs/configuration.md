@@ -13,6 +13,7 @@ Configure the documentation server with environment variables and file structure
 | `PORT` | `8080` | HTTP server port |
 | `DEBUG` | `false` | Enable debug mode with auto-reload |
 | `BASE_URL` | Auto-detected | Base URL for absolute links in llms.txt and Copy page AI links (ChatGPT, Claude) |
+| `FORWARDED_ALLOW_IPS` | `127.0.0.1` | Comma-separated list of trusted reverse-proxy IPs (or `*`). Set to `*` when running behind Caddy/Traefik/nginx in Docker Compose so real client IPs appear in access logs and rate limiting. See [Reverse Proxy](deployment/reverse-proxy.html). |
 | `SERVEMD_BRANDING_ENABLED` | `true` | Show "Powered by servemd" footer. Set to `false` to disable for white-label or self-hosted deployments |
 | `CUSTOM_CSS` | `custom.css` | Filename of custom CSS in DOCS_ROOT. Loaded on every page after default styles. See [Customization](features/customization.html) |
 
@@ -441,7 +442,8 @@ Before deploying to production:
 - [ ] Configure `BASE_URL` for llms.txt
 - [ ] Use proper `DOCS_ROOT` path
 - [ ] Set up cache directory with write permissions
-- [ ] Configure reverse proxy (nginx/caddy)
+- [ ] Configure reverse proxy with real-IP forwarding — see [Reverse Proxy](deployment/reverse-proxy.html)
+- [ ] Set `FORWARDED_ALLOW_IPS=*` in docker-compose when using Caddy/Traefik/nginx
 - [ ] Enable HTTPS
 - [ ] Set proper PORT if needed
 - [ ] Add health check monitoring

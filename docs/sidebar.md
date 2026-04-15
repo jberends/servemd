@@ -23,5 +23,6 @@
   * [MCP Client Setup](features/mcp-setup.html)
 * [Deployment](deployment/docker.html)
   * [Docker Deployment](deployment/docker.html)
+  * [Reverse Proxy](deployment/reverse-proxy.html)
 * [API Reference](api/endpoints.html)
   * [HTTP Endpoints](api/endpoints.html)

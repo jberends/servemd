@@ -19,6 +19,7 @@ services:
     environment:
       - DEBUG=false
       - MCP_ENABLED=true
+      - FORWARDED_ALLOW_IPS=*
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
       interval: 30s
