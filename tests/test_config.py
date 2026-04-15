@@ -213,21 +213,20 @@ def test_clear_cache_idempotent(tmp_path, monkeypatch):
     assert (tmp_path / "cache").exists()
 
 
-def test_forwarded_allow_ips_defaults_to_loopback(monkeypatch):
+def test_forwarded_allow_ips_defaults_to_loopback(monkeypatch, tmp_path):
     monkeypatch.delenv("FORWARDED_ALLOW_IPS", raising=False)
-    from importlib import reload
+    monkeypatch.setenv("DOCS_ROOT", str(tmp_path / "docs"))
+    monkeypatch.setenv("CACHE_ROOT", str(tmp_path / "cache"))
+    (tmp_path / "docs").mkdir()
+    from docs_server.config import Settings
+    assert Settings().FORWARDED_ALLOW_IPS == "127.0.0.1"
 
-    import docs_server.config as cfg_mod
 
-    reload(cfg_mod)
-    assert cfg_mod.settings.FORWARDED_ALLOW_IPS == "127.0.0.1"
-
-
-def test_forwarded_allow_ips_reads_from_env(monkeypatch):
+def test_forwarded_allow_ips_reads_from_env(monkeypatch, tmp_path):
     monkeypatch.setenv("FORWARDED_ALLOW_IPS", "*")
-    from importlib import reload
+    monkeypatch.setenv("DOCS_ROOT", str(tmp_path / "docs"))
+    monkeypatch.setenv("CACHE_ROOT", str(tmp_path / "cache"))
+    (tmp_path / "docs").mkdir()
+    from docs_server.config import Settings
 
-    import docs_server.config as cfg_mod
-
-    reload(cfg_mod)
-    assert cfg_mod.settings.FORWARDED_ALLOW_IPS == "*"
+    assert Settings().FORWARDED_ALLOW_IPS == "*"
