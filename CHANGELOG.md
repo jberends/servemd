@@ -5,6 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## UNRELEASED
+
+### Added
+
+- :shield: **Real client IP logging behind reverse proxies** — When running behind Caddy, Traefik, or nginx, uvicorn now logs the real visitor IP instead of the proxy's internal Docker IP. Enabled by setting `FORWARDED_ALLOW_IPS=*` (safe when port 8080 is `expose:`-only in Docker Compose).
+- :wrench: **`FORWARDED_ALLOW_IPS` env var** — New configuration setting (default `127.0.0.1`) controls which upstream proxy IPs are trusted for `X-Forwarded-For` / `X-Real-IP` header rewriting. Corresponds directly to uvicorn's `--forwarded-allow-ips` option.
+- :scroll: **Reverse Proxy guide** — New `docs/deployment/reverse-proxy.md` with full setup instructions for Caddy, Traefik v3, and nginx, including CORS configuration for `/mcp` (required by claude.ai's MCP Connector) and a note on rate limiting with real IPs.
+- :ship: **Hetzner docker-compose updated** — `deployment/hetzner/docker-compose.yml` now includes `FORWARDED_ALLOW_IPS=*` in the `servemd` service; `.env.example` documents the variable.
+
 ## v1.2.2 (2026-04-14)
 
 ### Fixed
