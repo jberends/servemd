@@ -219,6 +219,7 @@ def test_forwarded_allow_ips_defaults_to_loopback(monkeypatch, tmp_path):
     monkeypatch.setenv("CACHE_ROOT", str(tmp_path / "cache"))
     (tmp_path / "docs").mkdir()
     from docs_server.config import Settings
+
     assert Settings().FORWARDED_ALLOW_IPS == "127.0.0.1"
 
 
