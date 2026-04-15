@@ -761,6 +761,8 @@ def main():
         port=settings.PORT,
         reload=settings.DEBUG,
         log_level="debug" if settings.DEBUG else "info",
+        proxy_headers=True,
+        forwarded_allow_ips=settings.FORWARDED_ALLOW_IPS,
     )
 
 
