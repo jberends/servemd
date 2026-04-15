@@ -211,3 +211,23 @@ def test_clear_cache_idempotent(tmp_path, monkeypatch):
     settings.clear_cache()
 
     assert (tmp_path / "cache").exists()
+
+
+def test_forwarded_allow_ips_defaults_to_loopback(monkeypatch):
+    monkeypatch.delenv("FORWARDED_ALLOW_IPS", raising=False)
+    from importlib import reload
+
+    import docs_server.config as cfg_mod
+
+    reload(cfg_mod)
+    assert cfg_mod.settings.FORWARDED_ALLOW_IPS == "127.0.0.1"
+
+
+def test_forwarded_allow_ips_reads_from_env(monkeypatch):
+    monkeypatch.setenv("FORWARDED_ALLOW_IPS", "*")
+    from importlib import reload
+
+    import docs_server.config as cfg_mod
+
+    reload(cfg_mod)
+    assert cfg_mod.settings.FORWARDED_ALLOW_IPS == "*"
